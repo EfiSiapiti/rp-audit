@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-portal_probe.py — deterministic login gate. No agent / no LLM.
+portal_probe.py — deterministic login gate.
 Handles multi-hop menus (e.g. click account icon -> flyout -> click "Log in").
 
 Usage:  python portal_probe.py bmw.com [--headed]
