@@ -1,2 +1,0 @@
-# aero.zip | outcome: failed | 2026-06-01T11:31:27.827885+00:00
-two-stage signup: verification link expires after first use

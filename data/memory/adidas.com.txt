@@ -1,2 +1,0 @@
-# adidas.com | outcome: geo-blocked | 2026-06-01T10:17:41.501576+00:00
-adidas.com geo-redirects to mena.adidas.com which returns DNS failure

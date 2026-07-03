@@ -1,2 +1,0 @@
-# alterware.dev | outcome: failed | 2026-06-01T11:00:10.452603+00:00
-alterware.dev has no account/register documentation, no auth routes, desktop launcher service

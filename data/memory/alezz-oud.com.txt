@@ -1,2 +1,0 @@
-# alezz-oud.com | outcome: phone-gated | 2026-06-01T10:49:59.284626+00:00
-Salla-powered auth, email-first flow, unified signup/login, phone number required

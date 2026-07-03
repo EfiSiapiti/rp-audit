@@ -1,2 +1,0 @@
-# api.no | outcome: failed | 2026-06-01T12:06:11.271257+00:00
-domain api.no does not resolve (DNS failure)
