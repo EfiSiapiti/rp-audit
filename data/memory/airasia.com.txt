@@ -1,0 +1,2 @@
+# airasia.com | outcome: failed | 2026-06-01T10:42:54.438836+00:00
+airasia.com - modal auth not accessible via automation

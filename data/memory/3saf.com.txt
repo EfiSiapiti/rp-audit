@@ -1,0 +1,2 @@
+# 3saf.com | outcome: phone-gated | 2026-06-01T10:13:58.585819+00:00
+Salla auth: OTP verified, but phone field required in signup form

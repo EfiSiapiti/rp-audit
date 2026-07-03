@@ -1,0 +1,13 @@
+{
+  "rp_id": "breadfinancial.com",
+  "outcome": "requires-existing-account",
+  "memory_text": "requires existing Bread Savings account number and SSN to enroll in online portal - not open consumer signup",
+  "history": [
+    {
+      "at": "2026-06-08T11:44:39.399113+00:00",
+      "outcome": "requires-existing-account",
+      "memory_text": "requires existing Bread Savings account number and SSN to enroll in online portal - not open consumer signup"
+    }
+  ],
+  "updated_at": "2026-06-08T11:44:39.399113+00:00"
+}

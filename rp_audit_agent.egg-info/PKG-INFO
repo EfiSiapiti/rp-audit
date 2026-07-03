@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: rp-audit-agent
+Version: 0.1.0
+Requires-Python: >=3.11
+Requires-Dist: claude-agent-sdk>=0.1.0
+Requires-Dist: anthropic>=0.40
+Requires-Dist: playwright>=1.47
+Requires-Dist: imapclient>=3.0
+Requires-Dist: python-dotenv>=1.0
+Requires-Dist: pydantic>=2.0
+Requires-Dist: pandas>=2.0
+Requires-Dist: numpy>=2.0
+Requires-Dist: tldextract>=3.0

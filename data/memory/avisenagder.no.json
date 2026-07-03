@@ -1,0 +1,13 @@
+{
+  "rp_id": "avisenagder.no",
+  "outcome": "phone-gated",
+  "memory_text": "Amedia aID SSO - requires mobile phone number for account creation",
+  "history": [
+    {
+      "at": "2026-06-06T14:30:40.347258+00:00",
+      "outcome": "phone-gated",
+      "memory_text": "Amedia aID SSO - requires mobile phone number for account creation"
+    }
+  ],
+  "updated_at": "2026-06-06T14:30:40.347258+00:00"
+}

@@ -1,0 +1,13 @@
+{
+  "rp_id": "caremark.com",
+  "outcome": "geo-blocked",
+  "memory_text": "Akamai CDN 403 Access Denied on landing page - geo-block or bot protection",
+  "history": [
+    {
+      "at": "2026-06-08T13:22:59.101030+00:00",
+      "outcome": "geo-blocked",
+      "memory_text": "Akamai CDN 403 Access Denied on landing page - geo-block or bot protection"
+    }
+  ],
+  "updated_at": "2026-06-08T13:22:59.101030+00:00"
+}

@@ -1,0 +1,13 @@
+{
+  "rp_id": "cavemanon.xyz",
+  "outcome": "no-portal",
+  "memory_text": "no web portal - informational game site directing to itch.io",
+  "history": [
+    {
+      "at": "2026-06-08T13:38:23.285814+00:00",
+      "outcome": "no-portal",
+      "memory_text": "no web portal - informational game site directing to itch.io"
+    }
+  ],
+  "updated_at": "2026-06-08T13:38:23.285814+00:00"
+}

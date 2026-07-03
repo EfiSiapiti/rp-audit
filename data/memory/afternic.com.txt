@@ -1,0 +1,2 @@
+# afternic.com | outcome: failed | 2026-06-01T17:55:57.540891+00:00
+SSO at sso.afternic.com, username alphanumeric only

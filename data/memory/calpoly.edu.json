@@ -1,0 +1,13 @@
+{
+  "rp_id": "calpoly.edu",
+  "outcome": "requires-existing-account",
+  "memory_text": "university portal requiring admission/enrollment first, account activation for @calpoly.edu emails only",
+  "history": [
+    {
+      "at": "2026-06-08T11:57:56.303275+00:00",
+      "outcome": "requires-existing-account",
+      "memory_text": "university portal requiring admission/enrollment first, account activation for @calpoly.edu emails only"
+    }
+  ],
+  "updated_at": "2026-06-08T11:57:56.303275+00:00"
+}

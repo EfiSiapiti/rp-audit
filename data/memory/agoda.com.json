@@ -1,0 +1,18 @@
+{
+  "rp_id": "agoda.com",
+  "outcome": "failed",
+  "memory_text": "agoda.com signup modal in iframe shows email field but Continue button does not progress form to password/registration step despite multiple attempts",
+  "history": [
+    {
+      "at": "2026-06-08T12:37:37.703621+00:00",
+      "outcome": "failed",
+      "memory_text": "agoda.com signup: unified 'Sign in or create an account' modal (Email field + Continue button, plus Google/Facebook/Apple) renders inside an iframe. snapshot_page now traverses iframes, so the Email field appears (marked 'in iframe') — fill it and click Continue; do not hunt for a separate 'Create account' CTA."
+    },
+    {
+      "at": "2026-06-08T12:56:19.676936+00:00",
+      "outcome": "failed",
+      "memory_text": "agoda.com signup modal in iframe shows email field but Continue button does not progress form to password/registration step despite multiple attempts"
+    }
+  ],
+  "updated_at": "2026-06-08T12:56:19.676936+00:00"
+}

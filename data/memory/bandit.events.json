@@ -1,0 +1,13 @@
+{
+  "rp_id": "bandit.events",
+  "outcome": "requires-existing-account",
+  "memory_text": "B2B event ticketing platform, has login at my.bandit.events/login but no public signup - requires existing account/business relationship",
+  "history": [
+    {
+      "at": "2026-06-06T14:36:22.440959+00:00",
+      "outcome": "requires-existing-account",
+      "memory_text": "B2B event ticketing platform, has login at my.bandit.events/login but no public signup - requires existing account/business relationship"
+    }
+  ],
+  "updated_at": "2026-06-06T14:36:22.440959+00:00"
+}

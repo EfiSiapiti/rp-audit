@@ -1,0 +1,13 @@
+{
+  "rp_id": "avisagaula.no",
+  "outcome": "phone-gated",
+  "memory_text": "aID.no identity provider (Amedia), phone number required as primary auth credential",
+  "history": [
+    {
+      "at": "2026-06-06T14:28:41.967589+00:00",
+      "outcome": "phone-gated",
+      "memory_text": "aID.no identity provider (Amedia), phone number required as primary auth credential"
+    }
+  ],
+  "updated_at": "2026-06-06T14:28:41.967589+00:00"
+}

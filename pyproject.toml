@@ -1,0 +1,21 @@
+[project]
+name = "rp-audit-agent"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "playwright>=1.47",
+    "imapclient>=3.0",
+    "python-dotenv>=1.0",
+    "pydantic>=2.0",
+    "pandas>=2.0",
+    "numpy>=2.0",
+    "tldextract>=3.0"
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

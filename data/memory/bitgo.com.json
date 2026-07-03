@@ -1,0 +1,13 @@
+{
+  "rp_id": "bitgo.com",
+  "outcome": "captcha-blocked",
+  "memory_text": "Cloudflare bot protection blocks signup form access at https://app.bitgo.com/web/auth/signup - verification loop never completes",
+  "history": [
+    {
+      "at": "2026-06-08T11:27:40.688677+00:00",
+      "outcome": "captcha-blocked",
+      "memory_text": "Cloudflare bot protection blocks signup form access at https://app.bitgo.com/web/auth/signup - verification loop never completes"
+    }
+  ],
+  "updated_at": "2026-06-08T11:27:40.688677+00:00"
+}

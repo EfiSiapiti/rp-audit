@@ -1,0 +1,2 @@
+# almalinux.org | outcome: failed | 2026-06-01T10:57:11.354250+00:00
+AlmaLinux has Sign up and Register CTAs but they don't lead to account signup forms

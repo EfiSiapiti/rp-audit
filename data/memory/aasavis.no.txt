@@ -1,0 +1,2 @@
+# aasavis.no | outcome: failed | 2026-06-01T10:11:43.340438+00:00
+Amedia aID login form not responding to submit, may need different entry point

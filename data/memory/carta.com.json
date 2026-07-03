@@ -1,0 +1,13 @@
+{
+  "rp_id": "carta.com",
+  "outcome": "captcha-blocked",
+  "memory_text": "Cloudflare Turnstile challenge on login.app.carta.com - hard block",
+  "history": [
+    {
+      "at": "2026-06-08T13:37:07.360487+00:00",
+      "outcome": "captcha-blocked",
+      "memory_text": "Cloudflare Turnstile challenge on login.app.carta.com - hard block"
+    }
+  ],
+  "updated_at": "2026-06-08T13:37:07.360487+00:00"
+}

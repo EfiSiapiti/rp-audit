@@ -1,0 +1,13 @@
+{
+  "rp_id": "btcmap.org",
+  "outcome": "failed",
+  "memory_text": "Login page at /login has non-functional 'Create one here' signup link. /signup and /register return 404. No working web signup mechanism found. Site likely requires OpenStreetMap account or app-based signup.",
+  "history": [
+    {
+      "at": "2026-06-08T11:49:10.332279+00:00",
+      "outcome": "failed",
+      "memory_text": "Login page at /login has non-functional 'Create one here' signup link. /signup and /register return 404. No working web signup mechanism found. Site likely requires OpenStreetMap account or app-based signup."
+    }
+  ],
+  "updated_at": "2026-06-08T11:49:10.332279+00:00"
+}

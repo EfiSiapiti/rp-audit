@@ -1,0 +1,23 @@
+{
+  "rp_id": "braunhousehold.com",
+  "outcome": "failed",
+  "memory_text": "Registration form at /it-it/registration broken: submit button unresponsive despite filled fields and checked required privacy consents. Form appears to have JavaScript issue preventing submission.",
+  "history": [
+    {
+      "at": "2026-06-08T11:42:36.033403+00:00",
+      "outcome": "failed",
+      "memory_text": "registration at /it-it/registration, requires email verification, verification email not delivered to inbox"
+    },
+    {
+      "at": "2026-06-08T12:46:18.849226+00:00",
+      "outcome": "failed",
+      "memory_text": "Registration form at /it-it/registration non-functional - submit button unresponsive despite filled fields and checked privacy consent. Form appears broken (JavaScript issue or backend problem)."
+    },
+    {
+      "at": "2026-06-08T12:59:29.012712+00:00",
+      "outcome": "failed",
+      "memory_text": "Registration form at /it-it/registration broken: submit button unresponsive despite filled fields and checked required privacy consents. Form appears to have JavaScript issue preventing submission."
+    }
+  ],
+  "updated_at": "2026-06-08T12:59:29.012712+00:00"
+}

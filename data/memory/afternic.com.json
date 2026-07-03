@@ -1,0 +1,13 @@
+{
+  "rp_id": "afternic.com",
+  "outcome": "phone-gated",
+  "memory_text": "email verification succeeded but phone number required for profile completion",
+  "history": [
+    {
+      "at": "2026-06-03T10:29:55.901034+00:00",
+      "outcome": "phone-gated",
+      "memory_text": "email verification succeeded but phone number required for profile completion"
+    }
+  ],
+  "updated_at": "2026-06-03T10:29:55.901034+00:00"
+}

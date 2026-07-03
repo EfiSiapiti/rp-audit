@@ -1,0 +1,13 @@
+{
+  "rp_id": "byu.edu",
+  "outcome": "requires-existing-account",
+  "memory_text": "University portal requiring applicant/affiliation status (student, employee, or other institutional relationship)",
+  "history": [
+    {
+      "at": "2026-06-08T11:56:37.628340+00:00",
+      "outcome": "requires-existing-account",
+      "memory_text": "University portal requiring applicant/affiliation status (student, employee, or other institutional relationship)"
+    }
+  ],
+  "updated_at": "2026-06-08T11:56:37.628340+00:00"
+}

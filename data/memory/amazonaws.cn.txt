@@ -1,0 +1,2 @@
+# amazonaws.cn | outcome: failed | 2026-06-01T11:02:32.369314+00:00
+AWS China signup - stuck in verification loop, does not progress past email verification

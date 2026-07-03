@@ -1,0 +1,10 @@
+.env
+identity.json
+sessions/*.json
+browser-profiles/
+artifacts/
+data/ledger.json
+__pycache__/
+*.pyc
+.venv/
+audit.log

@@ -1,0 +1,13 @@
+{
+  "rp_id": "arca.live",
+  "outcome": "failed",
+  "memory_text": "Korean forum site, no standard auth URLs (/login /signup /register all 404), no visible signup text, icon-based navigation",
+  "history": [
+    {
+      "at": "2026-06-03T10:42:26.432718+00:00",
+      "outcome": "failed",
+      "memory_text": "Korean forum site, no standard auth URLs (/login /signup /register all 404), no visible signup text, icon-based navigation"
+    }
+  ],
+  "updated_at": "2026-06-03T10:42:26.432718+00:00"
+}
