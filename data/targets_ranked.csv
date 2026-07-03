@@ -1,0 +1,775 @@
+canonical_origin,etld1,enroll_url,cluster_size,snapshot_count,source,crux_rank,crux_bucket
+https://facebook.com,facebook.com,,133.0,1.0,webauthn|webauthn-related,1000,top 1k
+https://aliexpress.com,aliexpress.com,,73.0,1.0,community|community:passkeys.2fa.directory|webauthn|webauthn-related,1000,top 1k
+https://amazon.it,amazon.it,,60.0,1.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|webauthn|webauthn-related,1000,top 1k
+https://ebay.com,ebay.com,https://accounts.ebay.com/acctsec/manage/passkeys/create,11.0,1.0,community|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|endpoints,1000,top 1k
+https://agoda.com,agoda.com,,10.0,1.0,webauthn|webauthn-related,1000,top 1k
+https://shopify.com,shopify.com,https://accounts.shopify.com/account/security,5.0,1.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|endpoints|webauthn|webauthn-related,1000,top 1k
+https://paypal.com,paypal.com,https://www.paypal.com/myaccount/security/passkeyLogin/createPasskey,3.0,1.0,community|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|endpoints,1000,top 1k
+https://adobe.com,adobe.com,https://account.adobe.com/security?addPasskey,2.0,1.0,community|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|endpoints,1000,top 1k
+https://canva.com,canva.com,https://www.canva.com/settings/login-and-security,2.0,1.0,community|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory|endpoints,1000,top 1k
+https://nintendo.com,nintendo.com,https://accounts.nintendo.com/passkey,2.0,1.0,community|community:enpass.io|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|endpoints,1000,top 1k
+https://target.com,target.com,https://www.target.com/account/settings/signinsecurity,2.0,1.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|endpoints,1000,top 1k
+https://tiktok.com,tiktok.com,https://www.tiktok.com/ucenter_web/passkey_wizard?ug_source=others.pwdmanager&awedp_require_login=normal,2.0,1.0,community|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|endpoints,1000,top 1k
+https://www.amazon.co.jp,amazon.co.jp,,2.0,1.0,webauthn|webauthn-related,1000,top 1k
+https://www.ebay.co.uk,ebay.co.uk,https://accounts.ebay.co.uk/acctsec/manage/passkeys/create,2.0,1.0,endpoints,1000,top 1k
+https://www.ebay.de,ebay.de,https://accounts.ebay.de/acctsec/manage/passkeys/create,2.0,1.0,endpoints,1000,top 1k
+https://www.seznam.cz,seznam.cz,,2.0,1.0,webauthn|webauthn-related,1000,top 1k
+https://x.com,x.com,,2.0,1.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|webauthn|webauthn-related,1000,top 1k
+https://www.ebay.it,ebay.it,https://accounts.ebay.it/acctsec/manage/passkeys/create,1.0,1.0,endpoints,1000,top 1k
+https://live.com,live.com,,10.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,1000,top 1k
+https://vk.com,vk.com,,2.0,0.0,community|community:2fa.directory|community:enpass.io|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000,top 1k
+https://arca.live,arca.live,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000,top 1k
+https://boursorama.com,boursorama.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000,top 1k
+https://classlink.com,classlink.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000,top 1k
+https://discord.com,discord.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,1000,top 1k
+https://docomo.ne.jp,docomo.ne.jp,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000,top 1k
+https://github.com,github.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,1000,top 1k
+https://homedepot.com,homedepot.com,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000,top 1k
+https://hubspot.com,hubspot.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,1000,top 1k
+https://id.me,id.me,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,1000,top 1k
+https://indeed.com,indeed.com,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,1000,top 1k
+https://irs.gov,irs.gov,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000,top 1k
+https://lowes.com,lowes.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000,top 1k
+https://nikkei.com,nikkei.com,,1.0,0.0,community,1000,top 1k
+https://onet.pl,onet.pl,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:passkeys.2fa.directory,1000,top 1k
+https://onlyfans.com,onlyfans.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000,top 1k
+https://pixiv.net,pixiv.net,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,1000,top 1k
+https://roblox.com,roblox.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,1000,top 1k
+https://samsung.com,samsung.com,,1.0,0.0,community|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.com,1000,top 1k
+https://telegram.org,telegram.org,,1.0,0.0,community|community:passkeys.directory,1000,top 1k
+https://walmart.com,walmart.com,,1.0,0.0,community|community:fidoalliance.org|community:passkeyindex.io|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,1000,top 1k
+https://whatsapp.com,whatsapp.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,1000,top 1k
+https://wikipedia.org,wikipedia.org,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.directory,1000,top 1k
+https://wise.com,wise.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.directory,1000,top 1k
+https://yahoo.com,yahoo.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000,top 1k
+https://yandex.com,yandex.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000,top 1k
+https://microsoft.com,microsoft.com,,,,manually added,1000,top 1k
+https://www.airbnb.com,airbnb.com,,150.0,1.0,webauthn|webauthn-related,5000,top 5k
+https://ticketmaster.com,ticketmaster.com,,29.0,1.0,community|community:passkeys.2fa.directory|community:passkeys.directory|webauthn|webauthn-related,5000,top 5k
+https://www.yelp.com,yelp.com,,27.0,1.0,webauthn|webauthn-related,5000,top 5k
+https://intuit.com,intuit.com,https://accounts.intuit.com/app/account-manager/security/passkey,5.0,1.0,community|community:passkeys-directory.dashlane.com|endpoints|webauthn|webauthn-related,5000,top 5k
+https://online.nomura.co.jp,nomura.co.jp,,5.0,1.0,webauthn|webauthn-related,5000,top 5k
+https://www.gmx.net,gmx.net,,5.0,1.0,webauthn|webauthn-related,5000,top 5k
+https://www.web.de,web.de,,5.0,1.0,webauthn|webauthn-related,5000,top 5k
+https://www.mercadopago.com.ar,mercadopago.com.ar,,4.0,1.0,webauthn|webauthn-related,5000,top 5k
+https://www.mercadopago.com.br,mercadopago.com.br,,4.0,1.0,webauthn|webauthn-related,5000,top 5k
+https://dropbox.com,dropbox.com,https://www.dropbox.com/account/security,3.0,1.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.directory|endpoints,5000,top 5k
+https://sso.tbank.ru,tbank.ru,,3.0,1.0,webauthn|webauthn-related,5000,top 5k
+https://docusign.com,docusign.com,https://account.docusign.com/me/privacy-security,2.0,1.0,community|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|endpoints,5000,top 5k
+https://mercari.com,mercari.com,https://jp.mercari.com/mypage/personal_info/passkeys,2.0,1.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|endpoints,5000,top 5k
+https://moneyforward.com,moneyforward.com,https://id.moneyforward.com/webauthn/credentials,2.0,1.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|endpoints,5000,top 5k
+https://openai.com,openai.com,,2.0,1.0,community|community:passkeys.directory|webauthn|webauthn-related,5000,top 5k
+https://www.betclic.ci,betclic.ci,,2.0,1.0,webauthn|webauthn-related,5000,top 5k
+https://www.ebay.ca,ebay.ca,https://accounts.ebay.ca/acctsec/manage/passkeys/create,2.0,1.0,endpoints,5000,top 5k
+https://www.ebay.com.au,ebay.com.au,https://accounts.ebay.com.au/acctsec/manage/passkeys/create,1.0,1.0,endpoints,5000,top 5k
+https://www.ebay.fr,ebay.fr,https://accounts.ebay.fr/acctsec/manage/passkeys/create,1.0,1.0,endpoints,5000,top 5k
+https://nvidia.com,nvidia.com,,2.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,5000,top 5k
+https://uber.com,uber.com,,2.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,5000,top 5k
+https://arbeitsagentur.de,arbeitsagentur.de,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,5000,top 5k
+https://asu.edu,asu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,5000,top 5k
+https://auone.jp,auone.jp,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,5000,top 5k
+https://bestbuy.com,bestbuy.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,5000,top 5k
+https://binance.com,binance.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,5000,top 5k
+https://canadiantire.ca,canadiantire.ca,,1.0,0.0,community|community:passkeys.2fa.directory,5000,top 5k
+https://carnival.com,carnival.com,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com,5000,top 5k
+https://cloudflare.com,cloudflare.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,5000,top 5k
+https://colorado.edu,colorado.edu,,1.0,0.0,community|community:2fa.directory,5000,top 5k
+https://costco.ca,costco.ca,,1.0,0.0,community|community:passkeyindex.io|community:passkeys.2stable.com|community:passkeys.directory,5000,top 5k
+https://dell.com,dell.com,,1.0,0.0,community|community:passkeys.directory,5000,top 5k
+https://icloud.com,icloud.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:hideez.com|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,5000,top 5k
+https://konami.net,konami.net,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,5000,top 5k
+https://login.gov,login.gov,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,5000,top 5k
+https://mangadex.org,mangadex.org,,1.0,0.0,community|community:2fa.directory|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.directory,5000,top 5k
+https://minecraft.net,minecraft.net,,1.0,0.0,community|community:enpass.io|community:passkeys.2fa.directory,5000,top 5k
+https://monash.edu,monash.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,5000,top 5k
+https://nfl.com,nfl.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com,5000,top 5k
+https://o2.pl,o2.pl,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,5000,top 5k
+https://sapo.pt,sapo.pt,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,5000,top 5k
+https://snapchat.com,snapchat.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,5000,top 5k
+https://va.gov,va.gov,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,5000,top 5k
+https://vercel.com,vercel.com,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,5000,top 5k
+https://wellsfargo.com,wellsfargo.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,5000,top 5k
+https://kayak.com,kayak.com,https://www.kayak.com/profile/account/passkeys,67.0,1.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|endpoints|webauthn|webauthn-related,10000,top 10k
+https://codere.mx,codere.mx,,6.0,1.0,community|webauthn|webauthn-related,10000,top 10k
+https://softbank.jp,softbank.jp,,5.0,1.0,community|webauthn|webauthn-related,10000,top 10k
+https://ruten.com.tw,ruten.com.tw,,4.0,1.0,community|webauthn|webauthn-related,10000,top 10k
+https://www.mercadopago.com.mx,mercadopago.com.mx,,4.0,1.0,webauthn|webauthn-related,10000,top 10k
+https://auth.aib.ie,aib.ie,,3.0,1.0,webauthn|webauthn-related,10000,top 10k
+https://login.mtb.com,mtb.com,,1.0,1.0,webauthn,10000,top 10k
+https://www.ebay.es,ebay.es,https://accounts.ebay.es/acctsec/manage/passkeys/create,1.0,1.0,endpoints,10000,top 10k
+https://adidas.com,adidas.com,,1.0,0.0,community,10000,top 10k
+https://affirm.com,affirm.com,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,10000,top 10k
+https://ah.nl,ah.nl,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,10000,top 10k
+https://atlassian.com,atlassian.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory|community:passkeys.directory,10000,top 10k
+https://battle.net,battle.net,,1.0,0.0,community|community:passkeys.directory,10000,top 10k
+https://boursobank.com,boursobank.com,,1.0,0.0,community|community:passkeyindex.io|community:passkeys-directory.dashlane.com,10000,top 10k
+https://britishairways.com,britishairways.com,,1.0,0.0,community|community:2fa.directory,10000,top 10k
+https://citi.com,citi.com,,1.0,0.0,community|community:fidoalliance.org|community:passkeyindex.io,10000,top 10k
+https://deakin.edu.au,deakin.edu.au,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,10000,top 10k
+https://ee.co.uk,ee.co.uk,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,10000,top 10k
+https://godaddy.com,godaddy.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,10000,top 10k
+https://hatena.ne.jp,hatena.ne.jp,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,10000,top 10k
+https://hyatt.com,hyatt.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,10000,top 10k
+https://instacart.com,instacart.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,10000,top 10k
+https://lululemon.com,lululemon.com,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,10000,top 10k
+https://msu.edu,msu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,10000,top 10k
+https://muni.cz,muni.cz,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,10000,top 10k
+https://my.gov.au,my.gov.au,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,10000,top 10k
+https://namecheap.com,namecheap.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,10000,top 10k
+https://ncsu.edu,ncsu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,10000,top 10k
+https://olympics.com,olympics.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com,10000,top 10k
+https://rewe.de,rewe.de,,1.0,0.0,community|community:passkeys.2stable.com,10000,top 10k
+https://robinhood.com,robinhood.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,10000,top 10k
+https://slevomat.cz,slevomat.cz,,1.0,0.0,community,10000,top 10k
+https://squareup.com,squareup.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,10000,top 10k
+https://stripe.com,stripe.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,10000,top 10k
+https://sydney.edu.au,sydney.edu.au,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,10000,top 10k
+https://telekom.de,telekom.de,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,10000,top 10k
+https://ubc.ca,ubc.ca,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,10000,top 10k
+https://ucdavis.edu,ucdavis.edu,,1.0,0.0,community|community:2fa.directory,10000,top 10k
+https://wisc.edu,wisc.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,10000,top 10k
+https://woolworths.com.au,woolworths.com.au,,1.0,0.0,community|community:passkeys.2fa.directory,10000,top 10k
+https://wordpress.com,wordpress.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,10000,top 10k
+https://zoho.com,zoho.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,10000,top 10k
+https://bitbucket.org,bitbucket.org,,,,manually added,10000,top 10k
+https://oa.no,oa.no,,70.0,1.0,community|webauthn|webauthn-related,50000,top 50k
+https://huk.de,huk.de,,8.0,1.0,community|webauthn|webauthn-related,50000,top 50k
+https://notion.com,notion.com,,7.0,1.0,community|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|webauthn|webauthn-related,50000,top 50k
+https://kraken.com,kraken.com,,4.0,1.0,community|community:2fa.directory|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.directory|webauthn|webauthn-related,50000,top 50k
+https://laby.net,laby.net,,4.0,1.0,webauthn|webauthn-related,50000,top 50k
+https://www.mercadopago.cl,mercadopago.cl,,4.0,1.0,webauthn|webauthn-related,50000,top 50k
+https://www.mercadopago.com.co,mercadopago.com.co,,4.0,1.0,webauthn|webauthn-related,50000,top 50k
+https://freetaxusa.com,freetaxusa.com,https://auth.freetaxusa.com/passkey,3.0,1.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory|endpoints,50000,top 50k
+https://okta.com,okta.com,,3.0,1.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory|webauthn|webauthn-related,50000,top 50k
+https://www.scor.dk,scor.dk,,3.0,1.0,webauthn|webauthn-related,50000,top 50k
+https://accounts.principal.com,principal.com,,2.0,1.0,webauthn|webauthn-related,50000,top 50k
+https://bu.edu,bu.edu,,2.0,1.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com|endpoints,50000,top 50k
+https://coinbase.com,coinbase.com,https://accounts.coinbase.com/security/settings,2.0,1.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io|endpoints,50000,top 50k
+https://ramp.com,ramp.com,https://app.ramp.com/settings/personal-settings/security/passkeys,2.0,1.0,community|community:passkeys.directory|endpoints,50000,top 50k
+https://sumup.com,sumup.com,https://me.sumup.com/security/passkeys/add,2.0,1.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory|endpoints,50000,top 50k
+https://super.com,super.com,,2.0,1.0,community|webauthn|webauthn-related,50000,top 50k
+https://www.befr.ebay.be,ebay.be,https://accounts.befr.ebay.be/acctsec/manage/passkeys/create,2.0,1.0,endpoints,50000,top 50k
+https://www.betclic.pt,betclic.pt,,2.0,1.0,webauthn|webauthn-related,50000,top 50k
+https://www.euskadi.eus,euskadi.eus,,2.0,1.0,webauthn|webauthn-related,50000,top 50k
+https://3saf.com,3saf.com,,1.0,1.0,endpoints,50000,top 50k
+https://m.betclic.fr,betclic.fr,,1.0,1.0,webauthn|webauthn-related,50000,top 50k
+https://m.betclic.pl,betclic.pl,,1.0,1.0,webauthn|webauthn-related,50000,top 50k
+https://pdfaid.com,pdfaid.com,,1.0,1.0,endpoints,50000,top 50k
+https://pdfhouse.com,pdfhouse.com,,1.0,1.0,endpoints,50000,top 50k
+https://readtheory.org,readtheory.org,,1.0,1.0,endpoints,50000,top 50k
+https://saudi.ibraqperfumes.com,ibraqperfumes.com,,1.0,1.0,endpoints,50000,top 50k
+https://www.adopt.com,adopt.com,,1.0,1.0,endpoints,50000,top 50k
+https://www.ebay.at,ebay.at,https://accounts.ebay.at/acctsec/manage/passkeys/create,1.0,1.0,endpoints,50000,top 50k
+https://www.ebay.ie,ebay.ie,https://accounts.ebay.ie/acctsec/manage/passkeys/create,1.0,1.0,endpoints,50000,top 50k
+https://www.ebay.nl,ebay.nl,https://accounts.ebay.nl/acctsec/manage/passkeys/create,1.0,1.0,endpoints,50000,top 50k
+https://www.ebay.pl,ebay.pl,https://accounts.ebay.pl/acctsec/manage/passkeys/create,1.0,1.0,endpoints,50000,top 50k
+https://www.siemens.com,siemens.com,,1.0,1.0,webauthn,50000,top 50k
+https://www.whatnot.com,whatnot.com,https://www.whatnot.com/account/settings/passkey,1.0,1.0,endpoints,50000,top 50k
+https://nitrado.net,nitrado.net,,2.0,0.0,community|community:2fa.directory|community:enpass.io|community:hideez.com|community:passkeys.2fa.directory,50000,top 50k
+https://afternic.com,afternic.com,,1.0,0.0,community|community:2fa.directory,50000,top 50k
+https://ahrefs.com,ahrefs.com,,1.0,0.0,community|community:passkeys.directory,50000,top 50k
+https://airasia.com,airasia.com,,1.0,0.0,community|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://ankiweb.net,ankiweb.net,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://auth0.com,auth0.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,50000,top 50k
+https://basecamp.com,basecamp.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,50000,top 50k
+https://berkeley.edu,berkeley.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://blender.org,blender.org,,1.0,0.0,community,50000,top 50k
+https://bolt.eu,bolt.eu,,1.0,0.0,community|community:hideez.com|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory|community:passkeys.io,50000,top 50k
+https://bumble.com,bumble.com,,1.0,0.0,community|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://byu.edu,byu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,50000,top 50k
+https://calpoly.edu,calpoly.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://caremark.com,caremark.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://cmu.edu,cmu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://columbia.edu,columbia.edu,,1.0,0.0,community|community:2fa.directory,50000,top 50k
+https://commercebank.com,commercebank.com,,1.0,0.0,community,50000,top 50k
+https://computerbase.de,computerbase.de,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://cornell.edu,cornell.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://cpp.edu,cpp.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,50000,top 50k
+https://duke.edu,duke.edu,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://dynadot.com,dynadot.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,50000,top 50k
+https://europa.eu,europa.eu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://example.com,example.com,,1.0,0.0,community|community:passkeys.2stable.com,50000,top 50k
+https://grab.com,grab.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,50000,top 50k
+https://harvard.edu,harvard.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://haveibeenpwned.com,haveibeenpwned.com,,1.0,0.0,community|community:passkeys.directory,50000,top 50k
+https://hcaptcha.com,hcaptcha.com,,1.0,0.0,community|community:2fa.directory|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,50000,top 50k
+https://headway.co,headway.co,,1.0,0.0,community|community:2fa.directory|community:enpass.io,50000,top 50k
+https://home-assistant.io,home-assistant.io,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://hpe.com,hpe.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io,50000,top 50k
+https://hypixel.net,hypixel.net,,1.0,0.0,community|community:2fa.directory,50000,top 50k
+https://ibm.com,ibm.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://ing.pl,ing.pl,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://jumpcloud.com,jumpcloud.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,50000,top 50k
+https://kwansei.ac.jp,kwansei.ac.jp,,1.0,0.0,community,50000,top 50k
+https://lastpass.com,lastpass.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:passkeys.2fa.directory,50000,top 50k
+https://linear.app,linear.app,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,50000,top 50k
+https://link.com,link.com,,1.0,0.0,community|community:enpass.io|community:hideez.com|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://lnk.bio,lnk.bio,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://luma.com,luma.com,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,50000,top 50k
+https://macif.fr,macif.fr,,1.0,0.0,community|community:passkeys-directory.dashlane.com,50000,top 50k
+https://michigan.gov,michigan.gov,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://microcenter.com,microcenter.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://mines.edu,mines.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://mixi.com,mixi.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://monespacesante.fr,monespacesante.fr,,1.0,0.0,community|community:passkeys-directory.dashlane.com,50000,top 50k
+https://mongodb.com,mongodb.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,50000,top 50k
+https://nd.edu,nd.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,50000,top 50k
+https://nordaccount.com,nordaccount.com,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,50000,top 50k
+https://nordvpn.com,nordvpn.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:passkeys.2fa.directory,50000,top 50k
+https://norton.com,norton.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,50000,top 50k
+https://nyulmc.org,nyulmc.org,,1.0,0.0,community|community:passkeys-directory.dashlane.com,50000,top 50k
+https://okx.com,okx.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://oracle.com,oracle.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,50000,top 50k
+https://otago.ac.nz,otago.ac.nz,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,50000,top 50k
+https://penfed.org,penfed.org,,1.0,0.0,community|community:passkeys.2fa.directory,50000,top 50k
+https://pkobp.pl,pkobp.pl,,1.0,0.0,community|community:2fa.directory,50000,top 50k
+https://porkbun.com,porkbun.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,50000,top 50k
+https://proton.me,proton.me,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.com,50000,top 50k
+https://psu.edu,psu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://pypi.org,pypi.org,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:passkeys.2fa.directory,50000,top 50k
+https://rcs-rds.ro,rcs-rds.ro,,1.0,0.0,community,50000,top 50k
+https://registro.br,registro.br,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,50000,top 50k
+https://revolut.com,revolut.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com,50000,top 50k
+https://siriusxm.com,siriusxm.com,,1.0,0.0,community|community:enpass.io|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://so-net.ne.jp,so-net.ne.jp,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://sony.com,sony.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://stanford.edu,stanford.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://tailscale.com,tailscale.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,50000,top 50k
+https://telstra.com,telstra.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://tiaa.org,tiaa.org,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,50000,top 50k
+https://torontomu.ca,torontomu.ca,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,50000,top 50k
+https://trimble.com,trimble.com,,1.0,0.0,community|community:fidoalliance.org|community:passkeys.2stable.com|community:passkeys.directory,50000,top 50k
+https://tripletex.no,tripletex.no,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://tu-darmstadt.de,tu-darmstadt.de,,1.0,0.0,community|community:2fa.directory,50000,top 50k
+https://ucla.edu,ucla.edu,,1.0,0.0,community|community:2fa.directory,50000,top 50k
+https://ucr.edu,ucr.edu,,1.0,0.0,community|community:2fa.directory,50000,top 50k
+https://ucsd.edu,ucsd.edu,,1.0,0.0,community|community:2fa.directory,50000,top 50k
+https://uwaterloo.ca,uwaterloo.ca,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://vanguard.com,vanguard.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://vicroads.vic.gov.au,vicroads.vic.gov.au,,1.0,0.0,community|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory,50000,top 50k
+https://virginmedia.com,virginmedia.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,50000,top 50k
+https://wealthsimple.com,wealthsimple.com,,1.0,0.0,community|community:passkeys.directory,50000,top 50k
+https://wisconsin.gov,wisconsin.gov,,1.0,0.0,community,50000,top 50k
+https://yorku.ca,yorku.ca,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,50000,top 50k
+https://zlavomat.sk,zlavomat.sk,,1.0,0.0,community,50000,top 50k
+https://ggpass.com,ggpass.com,,153.0,1.0,webauthn|webauthn-related,100000,top 100k
+https://www.mercadopago.com.pe,mercadopago.com.pe,,4.0,1.0,webauthn|webauthn-related,100000,top 100k
+https://www.mercadopago.com.uy,mercadopago.com.uy,,4.0,1.0,webauthn|webauthn-related,100000,top 100k
+https://atlasbus.by,atlasbus.by,,3.0,1.0,webauthn|webauthn-related,100000,top 100k
+https://auth.wyze.com,wyze.com,,2.0,1.0,webauthn|webauthn-related,100000,top 100k
+https://jobs.employmenthero.com,employmenthero.com,,2.0,1.0,webauthn|webauthn-related,100000,top 100k
+https://simply.com,simply.com,https://www.simply.com/en/controlpanel/user/,2.0,1.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|endpoints,100000,top 100k
+https://alezz-oud.com,alezz-oud.com,,1.0,1.0,endpoints,100000,top 100k
+https://laverne.com,laverne.com,,1.0,1.0,endpoints,100000,top 100k
+https://matchperfumes.com,matchperfumes.com,,1.0,1.0,endpoints,100000,top 100k
+https://moneybird.com,moneybird.com,https://moneybird.com/user/webauthn_credential_setup/new,1.0,1.0,community|community:enpass.io|community:hideez.com|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|endpoints,100000,top 100k
+https://reefperfumes.com,reefperfumes.com,,1.0,1.0,endpoints,100000,top 100k
+https://sa.arabianoud.com,arabianoud.com,,1.0,1.0,endpoints,100000,top 100k
+https://the-board.jp,the-board.jp,https://the-board.jp/user/passkeys,1.0,1.0,endpoints,100000,top 100k
+https://ui.com,ui.com,https://account.ui.com/security,1.0,1.0,community|endpoints,100000,top 100k
+https://www.beer52.com,beer52.com,https://www.beer52.com/account,1.0,1.0,endpoints,100000,top 100k
+https://www.ebay.ch,ebay.ch,https://accounts.ebay.ch/acctsec/manage/passkeys/create,1.0,1.0,endpoints,100000,top 100k
+https://www.ebay.com.hk,ebay.com.hk,https://accounts.ebay.com.hk/acctsec/manage/passkeys/create,1.0,1.0,endpoints,100000,top 100k
+https://www.ebay.com.my,ebay.com.my,https://accounts.ebay.com.my/acctsec/manage/passkeys/create,1.0,1.0,endpoints,100000,top 100k
+https://www.ebay.com.sg,ebay.com.sg,https://accounts.ebay.com.sg/acctsec/manage/passkeys/create,1.0,1.0,endpoints,100000,top 100k
+https://1password.com,1password.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com,100000,top 100k
+https://abanca.com,abanca.com,,1.0,0.0,community|community:fidoalliance.org|community:passkeyindex.io|community:passkeys-directory.dashlane.com,100000,top 100k
+https://adafruit.com,adafruit.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,100000,top 100k
+https://aflac.com,aflac.com,,1.0,0.0,community|community:fidoalliance.org|community:passkeyindex.io|community:passkeys-directory.dashlane.com,100000,top 100k
+https://amboss.com,amboss.com,,1.0,0.0,community,100000,top 100k
+https://bitwarden.com,bitwarden.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory|community:passkeys.io,100000,top 100k
+https://bridgecrest.com,bridgecrest.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,100000,top 100k
+https://codeberg.org,codeberg.org,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,100000,top 100k
+https://crowdin.com,crowdin.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,100000,top 100k
+https://dext.com,dext.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,100000,top 100k
+https://fairfaxcounty.gov,fairfaxcounty.gov,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,100000,top 100k
+https://gatech.edu,gatech.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,100000,top 100k
+https://gitlab.com,gitlab.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,100000,top 100k
+https://keepersecurity.com,keepersecurity.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:passkeys.2fa.directory,100000,top 100k
+https://kit.edu,kit.edu,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,100000,top 100k
+https://larksuite.com,larksuite.com,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,100000,top 100k
+https://mail.de,mail.de,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,100000,top 100k
+https://marshmallow-qa.com,marshmallow-qa.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,100000,top 100k
+https://mercury.com,mercury.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,100000,top 100k
+https://miamioh.edu,miamioh.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,100000,top 100k
+https://migros.ch,migros.ch,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,100000,top 100k
+https://morganstanley.com,morganstanley.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,100000,top 100k
+https://net.ru,net.ru,,1.0,0.0,community,100000,top 100k
+https://onlinescoutmanager.co.uk,onlinescoutmanager.co.uk,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,100000,top 100k
+https://osu.edu,osu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,100000,top 100k
+https://sktelecom.com,sktelecom.com,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,100000,top 100k
+https://spaceship.com,spaceship.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,100000,top 100k
+https://stall-frei.de,stall-frei.de,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,100000,top 100k
+https://synology.com,synology.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,100000,top 100k
+https://tokyu.co.jp,tokyu.co.jp,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,100000,top 100k
+https://ucmerced.edu,ucmerced.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,100000,top 100k
+https://ulys.com,ulys.com,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,100000,top 100k
+https://umich.edu,umich.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,100000,top 100k
+https://uni-due.de,uni-due.de,,1.0,0.0,community,100000,top 100k
+https://vse.cz,vse.cz,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,100000,top 100k
+https://wealthnavi.com,wealthnavi.com,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,100000,top 100k
+https://wpengine.com,wpengine.com,,1.0,0.0,community,100000,top 100k
+https://www.clientam.com,clientam.com,,23.0,1.0,webauthn|webauthn-related,500000,top 500k
+https://merrilledge.com,merrilledge.com,,10.0,1.0,community|community:2fa.directory|community:fidoalliance.org|community:passkeys.2stable.com|webauthn|webauthn-related,500000,top 500k
+https://www.strawberryhotels.com,strawberryhotels.com,https://www.strawberry.se/min-sida/installningar,10.0,1.0,endpoints|webauthn|webauthn-related,500000,top 500k
+https://www.paypay-sec.co.jp,paypay-sec.co.jp,,4.0,1.0,webauthn|webauthn-related,500000,top 500k
+https://nerdfix.cz,nerdfix.cz,,3.0,1.0,webauthn|webauthn-related,500000,top 500k
+https://review.internalfb.com,internalfb.com,,2.0,1.0,webauthn|webauthn-related,500000,top 500k
+https://sa.almajed4oud.com,almajed4oud.com,,1.0,1.0,endpoints,500000,top 500k
+https://www.withings.com,withings.com,https://account.withings.com/account/2fa/setup_u2f,1.0,1.0,endpoints,500000,top 500k
+https://zyros.com,zyros.com,,1.0,1.0,endpoints,500000,top 500k
+https://nest.com,nest.com,,9.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,500000,top 500k
+https://visma.com,visma.com,,5.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://eslgaming.com,eslgaming.com,,2.0,0.0,community|community:2fa.directory|community:enpass.io|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://heroku.com,heroku.com,,2.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2fa.directory,500000,top 500k
+https://101domain.com,101domain.com,,1.0,0.0,community|community:fidoalliance.org|community:hideez.com|community:passkeys.2stable.com,500000,top 500k
+https://1040.com,1040.com,,1.0,0.0,community|community:passkeys.2stable.com,500000,top 500k
+https://10web.io,10web.io,,1.0,0.0,community|community:passkeys.2stable.com,500000,top 500k
+https://123-reg.co.uk,123-reg.co.uk,,1.0,0.0,community|community:2fa.directory,500000,top 500k
+https://activated.win,activated.win,,1.0,0.0,community,500000,top 500k
+https://airnewzealand.com,airnewzealand.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://allianz.com,allianz.com,,1.0,0.0,community,500000,top 500k
+https://alt.no,alt.no,,1.0,0.0,community,500000,top 500k
+https://amta.no,amta.no,,1.0,0.0,community,500000,top 500k
+https://austagderblad.no,austagderblad.no,,1.0,0.0,community,500000,top 500k
+https://avisa-hordaland.no,avisa-hordaland.no,,1.0,0.0,community,500000,top 500k
+https://avisa-valdres.no,avisa-valdres.no,,1.0,0.0,community,500000,top 500k
+https://avisenagder.no,avisenagder.no,,1.0,0.0,community,500000,top 500k
+https://bankatfirst.com,bankatfirst.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://beget.com,beget.com,,1.0,0.0,community,500000,top 500k
+https://bitbank.cc,bitbank.cc,,1.0,0.0,community|community:passkeyindex.io,500000,top 500k
+https://bitfinex.com,bitfinex.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,500000,top 500k
+https://bmw.com,bmw.com,,1.0,0.0,community|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://bodonu.no,bodonu.no,,1.0,0.0,community,500000,top 500k
+https://braunhousehold.com,braunhousehold.com,,1.0,0.0,community|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.2stable.com,500000,top 500k
+https://breadfinancial.com,breadfinancial.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://bygdeposten.no,bygdeposten.no,,1.0,0.0,community,500000,top 500k
+https://carta.com,carta.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com,500000,top 500k
+https://citrix.com,citrix.com,,1.0,0.0,community|community:fidoalliance.org|community:hideez.com|community:passkeyindex.io,500000,top 500k
+https://clemson.edu,clemson.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,500000,top 500k
+https://colisexpat.com,colisexpat.com,,1.0,0.0,community,500000,top 500k
+https://crowdsupply.com,crowdsupply.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,500000,top 500k
+https://cutx.org,cutx.org,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://dinero.dk,dinero.dk,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://eduid.ch,eduid.ch,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,500000,top 500k
+https://erau.edu,erau.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,500000,top 500k
+https://eub.no,eub.no,,1.0,0.0,community,500000,top 500k
+https://fastmail.com,fastmail.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://finom.co,finom.co,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://fintual.cl,fintual.cl,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,500000,top 500k
+https://firdaposten.no,firdaposten.no,,1.0,0.0,community,500000,top 500k
+https://fragdenstaat.de,fragdenstaat.de,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:passkeys.2fa.directory,500000,top 500k
+https://gandi.net,gandi.net,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,500000,top 500k
+https://gbnett.no,gbnett.no,,1.0,0.0,community,500000,top 500k
+https://gemini.com,gemini.com,,1.0,0.0,community|community:2fa.directory|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://georgetown.edu,georgetown.edu,,1.0,0.0,community|community:2fa.directory,500000,top 500k
+https://gitea.com,gitea.com,,1.0,0.0,community|community:passkeyindex.io,500000,top 500k
+https://gjengangeren.no,gjengangeren.no,,1.0,0.0,community,500000,top 500k
+https://hadeland.no,hadeland.no,,1.0,0.0,community,500000,top 500k
+https://hardanger-folkeblad.no,hardanger-folkeblad.no,,1.0,0.0,community,500000,top 500k
+https://helg.no,helg.no,,1.0,0.0,community,500000,top 500k
+https://helsana.ch,helsana.ch,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,500000,top 500k
+https://icedrive.net,icedrive.net,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,500000,top 500k
+https://iharstad.no,iharstad.no,,1.0,0.0,community,500000,top 500k
+https://ilam.ac.ir,ilam.ac.ir,,1.0,0.0,community,500000,top 500k
+https://imo.im,imo.im,,1.0,0.0,community|community:fidoalliance.org|community:passkeyindex.io,500000,top 500k
+https://indre.no,indre.no,,1.0,0.0,community,500000,top 500k
+https://ivoclar.com,ivoclar.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com,500000,top 500k
+https://jarlsbergavis.no,jarlsbergavis.no,,1.0,0.0,community,500000,top 500k
+https://kakaocorp.com,kakaocorp.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,500000,top 500k
+https://kcex.com,kcex.com,,1.0,0.0,community,500000,top 500k
+https://kenwoodworld.com,kenwoodworld.com,,1.0,0.0,community|community:passkeyindex.io|community:passkeys-directory.dashlane.com,500000,top 500k
+https://krs.no,krs.no,,1.0,0.0,community,500000,top 500k
+https://kuda.com,kuda.com,,1.0,0.0,community,500000,top 500k
+https://kv.no,kv.no,,1.0,0.0,community,500000,top 500k
+https://kvinnheringen.no,kvinnheringen.no,,1.0,0.0,community,500000,top 500k
+https://laagendalsposten.no,laagendalsposten.no,,1.0,0.0,community,500000,top 500k
+https://lendi.pl,lendi.pl,,1.0,0.0,community,500000,top 500k
+https://level1techs.com,level1techs.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,500000,top 500k
+https://lofot-tidende.no,lofot-tidende.no,,1.0,0.0,community,500000,top 500k
+https://lubuntu.me,lubuntu.me,,1.0,0.0,community,500000,top 500k
+https://luno.com,luno.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://lyngdalsavis.no,lyngdalsavis.no,,1.0,0.0,community,500000,top 500k
+https://mastodon.social,mastodon.social,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,500000,top 500k
+https://menumal.com,menumal.com,,1.0,0.0,community,500000,top 500k
+https://mojang.com,mojang.com,,1.0,0.0,community|community:enpass.io,500000,top 500k
+https://mulesoft.com,mulesoft.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io,500000,top 500k
+https://nab.no,nab.no,,1.0,0.0,community,500000,top 500k
+https://nationen.no,nationen.no,,1.0,0.0,community,500000,top 500k
+https://noblad.no,noblad.no,,1.0,0.0,community,500000,top 500k
+https://nordhordland.no,nordhordland.no,,1.0,0.0,community,500000,top 500k
+https://nordnorskdebatt.no,nordnorskdebatt.no,,1.0,0.0,community,500000,top 500k
+https://nordpass.com,nordpass.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,500000,top 500k
+https://nulab.com,nulab.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:hideez.com|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://nyetroms.no,nyetroms.no,,1.0,0.0,community,500000,top 500k
+https://nyu.edu,nyu.edu,,1.0,0.0,community|community:2fa.directory,500000,top 500k
+https://omega365.com,omega365.com,,1.0,0.0,community,500000,top 500k
+https://onelogin.com,onelogin.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,500000,top 500k
+https://onepropertee.com,onepropertee.com,,1.0,0.0,community,500000,top 500k
+https://onlyoffice.com,onlyoffice.com,,1.0,0.0,community,500000,top 500k
+https://opencollective.com,opencollective.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,500000,top 500k
+https://oregonstate.edu,oregonstate.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,500000,top 500k
+https://oyene.no,oyene.no,,1.0,0.0,community,500000,top 500k
+https://paidy.com,paidy.com,,1.0,0.0,community|community:passkeys.directory,500000,top 500k
+https://payfit.com,payfit.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://pd.no,pd.no,,1.0,0.0,community,500000,top 500k
+https://pilotinstitute.com,pilotinstitute.com,,1.0,0.0,community,500000,top 500k
+https://pixelplanet.fun,pixelplanet.fun,,1.0,0.0,community,500000,top 500k
+https://poloniex.com,poloniex.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://r-a.no,r-a.no,,1.0,0.0,community,500000,top 500k
+https://rablad.no,rablad.no,,1.0,0.0,community,500000,top 500k
+https://ranano.no,ranano.no,,1.0,0.0,community,500000,top 500k
+https://rastavanger.no,rastavanger.no,,1.0,0.0,community,500000,top 500k
+https://raumnes.no,raumnes.no,,1.0,0.0,community,500000,top 500k
+https://retten.no,retten.no,,1.0,0.0,community,500000,top 500k
+https://rha.no,rha.no,,1.0,0.0,community,500000,top 500k
+https://ringsaker-blad.no,ringsaker-blad.no,,1.0,0.0,community,500000,top 500k
+https://salad.com,salad.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://sans.org,sans.org,,1.0,0.0,community|community:2fa.directory|community:enpass.io,500000,top 500k
+https://scu.edu,scu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,500000,top 500k
+https://sentry.io,sentry.io,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:hideez.com|community:passkeys.2fa.directory,500000,top 500k
+https://shadow.tech,shadow.tech,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:passkeys.2fa.directory,500000,top 500k
+https://shakepay.com,shakepay.com,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://shu.edu,shu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,500000,top 500k
+https://simplelogin.io,simplelogin.io,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:passkeys.2fa.directory,500000,top 500k
+https://sneleentaxi.nl,sneleentaxi.nl,,1.0,0.0,community,500000,top 500k
+https://solabladet.no,solabladet.no,,1.0,0.0,community,500000,top 500k
+https://standardnotes.com,standardnotes.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,500000,top 500k
+https://steinkjer-avisa.no,steinkjer-avisa.no,,1.0,0.0,community,500000,top 500k
+https://strandbuen.no,strandbuen.no,,1.0,0.0,community,500000,top 500k
+https://syncfusion.com,syncfusion.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,500000,top 500k
+https://tamu.edu,tamu.edu,,1.0,0.0,community|community:2fa.directory,500000,top 500k
+https://telen.no,telen.no,,1.0,0.0,community,500000,top 500k
+https://toggl.com,toggl.com,,1.0,0.0,community|community:enpass.io|community:passkeys.2fa.directory,500000,top 500k
+https://tuta.com,tuta.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:hideez.com|community:keepersecurity.com|community:passkeys.2fa.directory,500000,top 500k
+https://tvedestrandsposten.no,tvedestrandsposten.no,,1.0,0.0,community,500000,top 500k
+https://ubank.com.au,ubank.com.au,,1.0,0.0,community|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://ulstu.ru,ulstu.ru,,1.0,0.0,community,500000,top 500k
+https://uq.edu.au,uq.edu.au,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,500000,top 500k
+https://uupdump.net,uupdump.net,,1.0,0.0,community,500000,top 500k
+https://varingen.no,varingen.no,,1.0,0.0,community,500000,top 500k
+https://vcu.edu,vcu.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,500000,top 500k
+https://vestbyavis.no,vestbyavis.no,,1.0,0.0,community,500000,top 500k
+https://vinci-autoroutes.com,vinci-autoroutes.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com,500000,top 500k
+https://vivaldi.com,vivaldi.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,500000,top 500k
+https://volt.io,volt.io,,1.0,0.0,community|community:passkeys.io,500000,top 500k
+https://wefunder.com,wefunder.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,500000,top 500k
+https://xenforo.com,xenforo.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.com|community:passkeys.directory,500000,top 500k
+https://zerotier.com,zerotier.com,,1.0,0.0,community|community:2fa.directory,500000,top 500k
+https://www.mercadopago.com.ec,mercadopago.com.ec,,4.0,1.0,webauthn|webauthn-related,1000000,top 1M
+https://aasavis.no,aasavis.no,,1.0,0.0,community,1000000,top 1M
+https://aha.io,aha.io,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,1000000,top 1M
+https://akersposten.no,akersposten.no,,1.0,0.0,community,1000000,top 1M
+https://almalinux.org,almalinux.org,,1.0,0.0,community,1000000,top 1M
+https://apexnetwork.co,apexnetwork.co,,1.0,0.0,community,1000000,top 1M
+https://api.no,api.no,,1.0,0.0,community,1000000,top 1M
+https://avisagaula.no,avisagaula.no,,1.0,0.0,community,1000000,top 1M
+https://billgenerator.in,billgenerator.in,,1.0,0.0,community,1000000,top 1M
+https://bitgo.com,bitgo.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000000,top 1M
+https://bondebladet.no,bondebladet.no,,1.0,0.0,community,1000000,top 1M
+https://bookmyname.com,bookmyname.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com,1000000,top 1M
+https://capecodfive.com,capecodfive.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000000,top 1M
+https://cloze.com,cloze.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000000,top 1M
+https://cyberark.com,cyberark.com,,1.0,0.0,community|community:fidoalliance.org|community:hideez.com|community:passkeyindex.io,1000000,top 1M
+https://delinea.com,delinea.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,1000000,top 1M
+https://digistorage.es,digistorage.es,,1.0,0.0,community,1000000,top 1M
+https://dmarcian.com,dmarcian.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000000,top 1M
+https://dnsimple.com,dnsimple.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,1000000,top 1M
+https://documenso.com,documenso.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000000,top 1M
+https://doppler.com,doppler.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000000,top 1M
+https://eikerbladet.no,eikerbladet.no,,1.0,0.0,community,1000000,top 1M
+https://enebakkavis.no,enebakkavis.no,,1.0,0.0,community,1000000,top 1M
+https://epayslips.co.uk,epayslips.co.uk,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000000,top 1M
+https://fanaposten.no,fanaposten.no,,1.0,0.0,community,1000000,top 1M
+https://finnmarksposten.no,finnmarksposten.no,,1.0,0.0,community,1000000,top 1M
+https://forgejo.org,forgejo.org,,1.0,0.0,community|community:passkeyindex.io,1000000,top 1M
+https://fortrade.com,fortrade.com,,1.0,0.0,community,1000000,top 1M
+https://forwardemail.net,forwardemail.net,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000000,top 1M
+https://fusionauth.io,fusionauth.io,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,1000000,top 1M
+https://gameindy.com,gameindy.com,,1.0,0.0,community,1000000,top 1M
+https://goteleport.com,goteleport.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,1000000,top 1M
+https://hartex.in,hartex.in,,1.0,0.0,community,1000000,top 1M
+https://havenandhearth.com,havenandhearth.com,,1.0,0.0,community,1000000,top 1M
+https://hey.com,hey.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:hideez.com|community:passkeys.2fa.directory,1000000,top 1M
+https://hmc.edu,hmc.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,1000000,top 1M
+https://ic0.app,ic0.app,,1.0,0.0,community,1000000,top 1M
+https://ilevanger.no,ilevanger.no,,1.0,0.0,community,1000000,top 1M
+https://isandnessjoen.no,isandnessjoen.no,,1.0,0.0,community,1000000,top 1M
+https://islonline.com,islonline.com,,1.0,0.0,community|community:2fa.directory|community:hideez.com|community:passkeys.2fa.directory,1000000,top 1M
+https://joinmastodon.org,joinmastodon.org,,1.0,0.0,community|community:enpass.io,1000000,top 1M
+https://karmoynytt.no,karmoynytt.no,,1.0,0.0,community,1000000,top 1M
+https://kemba.org,kemba.org,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000000,top 1M
+https://kska.io,kska.io,,1.0,0.0,community,1000000,top 1M
+https://lierposten.no,lierposten.no,,1.0,0.0,community,1000000,top 1M
+https://loolootech.com,loolootech.com,,1.0,0.0,community,1000000,top 1M
+https://merakerposten.no,merakerposten.no,,1.0,0.0,community,1000000,top 1M
+https://neuronation.com,neuronation.com,,1.0,0.0,community,1000000,top 1M
+https://norddalen.no,norddalen.no,,1.0,0.0,community,1000000,top 1M
+https://onelog.ch,onelog.ch,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2fa.directory|community:passkeys.2stable.com|community:passkeys.directory,1000000,top 1M
+https://opensuse.org,opensuse.org,,1.0,0.0,community,1000000,top 1M
+https://otpless.com,otpless.com,,1.0,0.0,community,1000000,top 1M
+https://ovh.com,ovh.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:passkeys.2fa.directory,1000000,top 1M
+https://perimeter81.com,perimeter81.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000000,top 1M
+https://rsa.com,rsa.com,,1.0,0.0,community,1000000,top 1M
+https://sandeavis.no,sandeavis.no,,1.0,0.0,community,1000000,top 1M
+https://spacetoco.com,spacetoco.com,,1.0,0.0,community,1000000,top 1M
+https://station-drivers.com,station-drivers.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,1000000,top 1M
+https://sva.no,sva.no,,1.0,0.0,community,1000000,top 1M
+https://swica.ch,swica.ch,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,1000000,top 1M
+https://talkdesk.com,talkdesk.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000000,top 1M
+https://techbookfest.org,techbookfest.org,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,1000000,top 1M
+https://terminals.io,terminals.io,,1.0,0.0,community,1000000,top 1M
+https://theprivateoffice.com,theprivateoffice.com,,1.0,0.0,community,1000000,top 1M
+https://tiktokw.eu,tiktokw.eu,,1.0,0.0,community,1000000,top 1M
+https://tutanota.com,tutanota.com,,1.0,0.0,community|community:enpass.io,1000000,top 1M
+https://tuwien.ac.at,tuwien.ac.at,,1.0,0.0,community,1000000,top 1M
+https://twingate.com,twingate.com,,1.0,0.0,community|community:2fa.directory,1000000,top 1M
+https://uidaho.edu,uidaho.edu,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory|community:passkeys.2stable.com,1000000,top 1M
+https://vaultcord.com,vaultcord.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io,1000000,top 1M
+https://veracode.com,veracode.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000000,top 1M
+https://weclapp.com,weclapp.com,,1.0,0.0,community|community:2fa.directory|community:enpass.io|community:passkeys.2fa.directory,1000000,top 1M
+https://woltlab.com,woltlab.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,1000000,top 1M
+https://worldskills.org,worldskills.org,,1.0,0.0,community,1000000,top 1M
+https://wraptas.site,wraptas.site,,1.0,0.0,community|community:passkeyindex.io,1000000,top 1M
+https://noupe.com,noupe.com,,66.0,1.0,webauthn|webauthn-related,,unranked
+https://0pass.com,0pass.com,,1.0,0.0,community|community:fidoalliance.org|community:hideez.com|community:passkeyindex.io,,unranked
+https://aero.zip,aero.zip,,1.0,0.0,community|community:2fa.directory|community:passkeys-directory.dashlane.com|community:passkeys.2fa.directory,,unranked
+https://afasonline.nl,afasonline.nl,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://allspice.io,allspice.io,,1.0,0.0,community,,unranked
+https://alterware.dev,alterware.dev,,1.0,0.0,community,,unranked
+https://amazonaws.cn,amazonaws.cn,,1.0,0.0,community,,unranked
+https://amedia.no,amedia.no,,1.0,0.0,community,,unranked
+https://armstrong.bank,armstrong.bank,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://arpari.com,arpari.com,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://astralium.su,astralium.su,,1.0,0.0,community,,unranked
+https://authgear.com,authgear.com,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://authsignal.com,authsignal.com,,1.0,0.0,community|community:hideez.com|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://axenov.dev,axenov.dev,,1.0,0.0,community,,unranked
+https://bandit.events,bandit.events,,1.0,0.0,community,,unranked
+https://basewallet.co,basewallet.co,,1.0,0.0,community,,unranked
+https://basicattentiontoken.org,basicattentiontoken.org,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,,unranked
+https://bbn.music,bbn.music,,1.0,0.0,community,,unranked
+https://beyondidentity.com,beyondidentity.com,,1.0,0.0,community|community:enpass.io|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://bitfire.tv,bitfire.tv,,1.0,0.0,community,,unranked
+https://blueocean.law,blueocean.law,,1.0,0.0,community|community:fidoalliance.org|community:passkeyindex.io,,unranked
+https://boolers.co.uk,boolers.co.uk,,1.0,0.0,community,,unranked
+https://braintreepayments.com,braintreepayments.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,,unranked
+https://brukerportal.no,brukerportal.no,,1.0,0.0,community,,unranked
+https://btcmap.org,btcmap.org,,1.0,0.0,community,,unranked
+https://bubbletea.dev,bubbletea.dev,,1.0,0.0,community,,unranked
+https://canva-dev.com,canva-dev.com,,1.0,0.0,community,,unranked
+https://canva-staging.cn,canva-staging.cn,,1.0,0.0,community,,unranked
+https://cardpointers.com,cardpointers.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://carvel.li,carvel.li,,1.0,0.0,community,,unranked
+https://cavemanon.xyz,cavemanon.xyz,,1.0,0.0,community,,unranked
+https://cdm-project.com,cdm-project.com,,1.0,0.0,community,,unranked
+https://chekspend.com,chekspend.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://cloud66.com,cloud66.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,,unranked
+https://coca.xyz,coca.xyz,,1.0,0.0,community,,unranked
+https://connectabil.com,connectabil.com,,1.0,0.0,community,,unranked
+https://coolaj86.com,coolaj86.com,,1.0,0.0,community,,unranked
+https://coom.tech,coom.tech,,1.0,0.0,community,,unranked
+https://corbado.com,corbado.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://corelab.com,corelab.com,,1.0,0.0,community,,unranked
+https://coveto.de,coveto.de,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://cpoms.co.uk,cpoms.co.uk,,1.0,0.0,community|community:2fa.directory,,unranked
+https://crownaudit.org,crownaudit.org,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://customerping.ai,customerping.ai,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://cvsspecialty.com,cvsspecialty.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://datapacket.com,datapacket.com,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://devolutions.com,devolutions.com,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://dilats.com,dilats.com,,1.0,0.0,community,,unranked
+https://dimo.org,dimo.org,,1.0,0.0,community,,unranked
+https://discourse.org,discourse.org,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,,unranked
+https://dmin.pro,dmin.pro,,1.0,0.0,community,,unranked
+https://door43.org,door43.org,,1.0,0.0,community,,unranked
+https://drmlab.io,drmlab.io,,1.0,0.0,community,,unranked
+https://enclave.money,enclave.money,,1.0,0.0,community,,unranked
+https://ente.io,ente.io,,1.0,0.0,community|community:passkeyindex.io|community:passkeys.directory,,unranked
+https://fastex.com,fastex.com,,1.0,0.0,community,,unranked
+https://fastexus.com,fastexus.com,,1.0,0.0,community,,unranked
+https://files.com,files.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,,unranked
+https://finnmarkdagblad.no,finnmarkdagblad.no,,1.0,0.0,community,,unranked
+https://finnmarkdebatten.no,finnmarkdebatten.no,,1.0,0.0,community,,unranked
+https://fireportal.cz,fireportal.cz,,1.0,0.0,community,,unranked
+https://fleeps.co,fleeps.co,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://flightschoolbooking.com,flightschoolbooking.com,,1.0,0.0,community,,unranked
+https://flux.nl,flux.nl,,1.0,0.0,community,,unranked
+https://forgerock.com,forgerock.com,,1.0,0.0,community,,unranked
+https://formx.ai,formx.ai,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://fragrance.moe,fragrance.moe,,1.0,0.0,community,,unranked
+https://freeprints.com,freeprints.com,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://frohnmeyer-wds.de,frohnmeyer-wds.de,,1.0,0.0,community,,unranked
+https://frontegg.com,frontegg.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com,,unranked
+https://frostingen.no,frostingen.no,,1.0,0.0,community,,unranked
+https://getadmiral.com,getadmiral.com,,1.0,0.0,community,,unranked
+https://getextendly.com,getextendly.com,,1.0,0.0,community,,unranked
+https://getprismm.com,getprismm.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://glauca.digital,glauca.digital,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://gmod-integration.com,gmod-integration.com,,1.0,0.0,community,,unranked
+https://goauthentik.io,goauthentik.io,,1.0,0.0,community|community:passkeyindex.io,,unranked
+https://guildofwriters.org,guildofwriters.org,,1.0,0.0,community,,unranked
+https://haeppie.com,haeppie.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://hammerfestingen.no,hammerfestingen.no,,1.0,0.0,community,,unranked
+https://hancock.ink,hancock.ink,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,,unranked
+https://hanko.io,hanko.io,,1.0,0.0,community|community:enpass.io|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory|community:passkeys.io,,unranked
+https://hardwax.com,hardwax.com,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://hawksmoorim.co.uk,hawksmoorim.co.uk,,1.0,0.0,community,,unranked
+https://heexy.org,heexy.org,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://high-mobility.com,high-mobility.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://hika.fyi,hika.fyi,,1.0,0.0,community,,unranked
+https://horizon.pics,horizon.pics,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://inderoyningen.no,inderoyningen.no,,1.0,0.0,community,,unranked
+https://instacard.co,instacard.co,,1.0,0.0,community|community:passkeys.io,,unranked
+https://instructui.com,instructui.com,,1.0,0.0,community,,unranked
+https://intastellaraccounts.com,intastellaraccounts.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://internetcomputer.org,internetcomputer.org,,1.0,0.0,community,,unranked
+https://iut-fbleau.fr,iut-fbleau.fr,,1.0,0.0,community,,unranked
+https://iverdal.no,iverdal.no,,1.0,0.0,community,,unranked
+https://javablade.com,javablade.com,,1.0,0.0,community,,unranked
+https://jellypro.xyz,jellypro.xyz,,1.0,0.0,community,,unranked
+https://julep.ai,julep.ai,,1.0,0.0,community,,unranked
+https://justpass.me,justpass.me,,1.0,0.0,community|community:passkeys-directory.dashlane.com,,unranked
+https://kamkow1lair.pl,kamkow1lair.pl,,1.0,0.0,community,,unranked
+https://karvononline.uz,karvononline.uz,,1.0,0.0,community,,unranked
+https://katipolt.com,katipolt.com,,1.0,0.0,community,,unranked
+https://klemn.net,klemn.net,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://kolibrios.org,kolibrios.org,,1.0,0.0,community,,unranked
+https://kood.tech,kood.tech,,1.0,0.0,community,,unranked
+https://koofr.eu,koofr.eu,,1.0,0.0,community|community:2fa.directory|community:enpass.io,,unranked
+https://laakari.chat,laakari.chat,,1.0,0.0,community|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://landing.ai,landing.ai,,1.0,0.0,community,,unranked
+https://leiting.app,leiting.app,,1.0,0.0,community,,unranked
+https://lgtm.lol,lgtm.lol,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://liberatedsystems.co.uk,liberatedsystems.co.uk,,1.0,0.0,community,,unranked
+https://link3.to,link3.to,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://locker.io,locker.io,,1.0,0.0,community|community:hideez.com|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://logto.app,logto.app,,1.0,0.0,community,,unranked
+https://lokal-avisa.no,lokal-avisa.no,,1.0,0.0,community,,unranked
+https://louisa.ai,louisa.ai,,1.0,0.0,community,,unranked
+https://lsd.cat,lsd.cat,,1.0,0.0,community,,unranked
+https://luckyrobots.com,luckyrobots.com,,1.0,0.0,community,,unranked
+https://luminia.io,luminia.io,,1.0,0.0,community,,unranked
+https://lunarclient.top,lunarclient.top,,1.0,0.0,community,,unranked
+https://luxid.lu,luxid.lu,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://magic.link,magic.link,,1.0,0.0,community|community:passkeys-directory.dashlane.com,,unranked
+https://marketcircle.com,marketcircle.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://mediageneral.digital,mediageneral.digital,,1.0,0.0,community,,unranked
+https://medvind24.no,medvind24.no,,1.0,0.0,community,,unranked
+https://metri.xyz,metri.xyz,,1.0,0.0,community,,unranked
+https://mfw.work,mfw.work,,1.0,0.0,community,,unranked
+https://mills.io,mills.io,,1.0,0.0,community,,unranked
+https://miniflux.app,miniflux.app,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://miniorange.com,miniorange.com,,1.0,0.0,community,,unranked
+https://mintbase.xyz,mintbase.xyz,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://minter.io,minter.io,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://mittlillestrom.no,mittlillestrom.no,,1.0,0.0,community,,unranked
+https://moneyinfo.co.uk,moneyinfo.co.uk,,1.0,0.0,community,,unranked
+https://mycurricula.com,mycurricula.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://myfritz.net,myfritz.net,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,,unranked
+https://myshn.net,myshn.net,,1.0,0.0,community,,unranked
+https://mysites.guru,mysites.guru,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://neko.id,neko.id,,1.0,0.0,community,,unranked
+https://neonteam.dev,neonteam.dev,,1.0,0.0,community,,unranked
+https://netfiles.com,netfiles.com,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://neuronation-med.com,neuronation-med.com,,1.0,0.0,community,,unranked
+https://nord24.no,nord24.no,,1.0,0.0,community,,unranked
+https://nordlocker.com,nordlocker.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,,unranked
+https://norsklandbruk.no,norsklandbruk.no,,1.0,0.0,community,,unranked
+https://nsbomega.com,nsbomega.com,,1.0,0.0,community,,unranked
+https://ofdl.tools,ofdl.tools,,1.0,0.0,community,,unranked
+https://offshoot.rentals,offshoot.rentals,,1.0,0.0,community|community:passkeys-directory.dashlane.com,,unranked
+https://ohkaspace.com,ohkaspace.com,,1.0,0.0,community,,unranked
+https://okeanos.nl,okeanos.nl,,1.0,0.0,community,,unranked
+https://omegasubsea.com,omegasubsea.com,,1.0,0.0,community,,unranked
+https://omg.lol,omg.lol,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://onlyg.it,onlyg.it,,1.0,0.0,community,,unranked
+https://ope.ee,ope.ee,,1.0,0.0,community|community:hideez.com|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://openprivacy.ca,openprivacy.ca,,1.0,0.0,community,,unranked
+https://orb.net,orb.net,,1.0,0.0,community,,unranked
+https://ourmayberry.com,ourmayberry.com,,1.0,0.0,community,,unranked
+https://palemoon.org,palemoon.org,,1.0,0.0,community,,unranked
+https://papermark.io,papermark.io,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,,unranked
+https://passage.id,passage.id,,1.0,0.0,community|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://passkeys.guru,passkeys.guru,,1.0,0.0,community|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://pastery.net,pastery.net,,1.0,0.0,community|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://paypal-search.com,paypal-search.com,,1.0,0.0,community|community:enpass.io,,unranked
+https://pika-os.com,pika-os.com,,1.0,0.0,community,,unranked
+https://poblano.jp,poblano.jp,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://practiceprotect.com,practiceprotect.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://premisehealth.com,premisehealth.com,,1.0,0.0,community|community:passkeys.2fa.directory,,unranked
+https://probit.com,probit.com,,1.0,0.0,community|community:2fa.directory|community:passkeys.2fa.directory,,unranked
+https://prodamus.ru,prodamus.ru,,1.0,0.0,community,,unranked
+https://projecthedron.com,projecthedron.com,,1.0,0.0,community,,unranked
+https://protegear.io,protegear.io,,1.0,0.0,community,,unranked
+https://qapital.com,qapital.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://rad.dad,rad.dad,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://ravanertebat.com,ravanertebat.com,,1.0,0.0,community,,unranked
+https://rc.today,rc.today,,1.0,0.0,community,,unranked
+https://regatta-systems.com,regatta-systems.com,,1.0,0.0,community,,unranked
+https://repaircode.de,repaircode.de,,1.0,0.0,community,,unranked
+https://repo.radio,repo.radio,,1.0,0.0,community,,unranked
+https://rewritify.com,rewritify.com,,1.0,0.0,community,,unranked
+https://sageneavis.no,sageneavis.no,,1.0,0.0,community,,unranked
+https://sam-app.ro,sam-app.ro,,1.0,0.0,community,,unranked
+https://scm.com,scm.com,,1.0,0.0,community,,unranked
+https://sellematics.com,sellematics.com,,1.0,0.0,community,,unranked
+https://sellmonitor.com,sellmonitor.com,,1.0,0.0,community,,unranked
+https://sellscreen.io,sellscreen.io,,1.0,0.0,community,,unranked
+https://senja247.no,senja247.no,,1.0,0.0,community,,unranked
+https://server47.de,server47.de,,1.0,0.0,community,,unranked
+https://sheetjs.com,sheetjs.com,,1.0,0.0,community,,unranked
+https://silverstudiogames.org,silverstudiogames.org,,1.0,0.0,community,,unranked
+https://skiff.com,skiff.com,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://snasningen.no,snasningen.no,,1.0,0.0,community,,unranked
+https://soloconlinux.org.es,soloconlinux.org.es,,1.0,0.0,community,,unranked
+https://sparos.tech,sparos.tech,,1.0,0.0,community,,unranked
+https://stangeavisa.no,stangeavisa.no,,1.0,0.0,community,,unranked
+https://stockarea.io,stockarea.io,,1.0,0.0,community,,unranked
+https://subanana.com,subanana.com,,1.0,0.0,community,,unranked
+https://subnoto.com,subnoto.com,,1.0,0.0,community|community:passkeys-directory.dashlane.com,,unranked
+https://subtitlewhisper.com,subtitlewhisper.com,,1.0,0.0,community,,unranked
+https://sunnypilot.ai,sunnypilot.ai,,1.0,0.0,community,,unranked
+https://svelviksposten.no,svelviksposten.no,,1.0,0.0,community,,unranked
+https://swissborg.com,swissborg.com,,1.0,0.0,community,,unranked
+https://sydvesten.no,sydvesten.no,,1.0,0.0,community,,unranked
+https://tender.run,tender.run,,1.0,0.0,community|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://tendokyu.moe,tendokyu.moe,,1.0,0.0,community,,unranked
+https://thebrokenrail.com,thebrokenrail.com,,1.0,0.0,community,,unranked
+https://thehendrixjc.com,thehendrixjc.com,,1.0,0.0,community|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://thunder.gg,thunder.gg,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://ticketeer.se,ticketeer.se,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,,unranked
+https://tildegit.org,tildegit.org,,1.0,0.0,community,,unranked
+https://tjadataba.se,tjadataba.se,,1.0,0.0,community,,unranked
+https://torrents-csv.com,torrents-csv.com,,1.0,0.0,community,,unranked
+https://totenidag.no,totenidag.no,,1.0,0.0,community,,unranked
+https://traktor.no,traktor.no,,1.0,0.0,community,,unranked
+https://transferwise.com,transferwise.com,,1.0,0.0,community|community:enpass.io,,unranked
+https://tromsoby.no,tromsoby.no,,1.0,0.0,community,,unranked
+https://tronderdebatt.no,tronderdebatt.no,,1.0,0.0,community,,unranked
+https://trusona.com,trusona.com,,1.0,0.0,community|community:enpass.io|community:hideez.com|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://trustworthy.com,trustworthy.com,,1.0,0.0,community|community:fidoalliance.org|community:hideez.com|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://turnkey.com,turnkey.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://tutumway.com,tutumway.com,,1.0,0.0,community,,unranked
+https://uninbox.com,uninbox.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory|community:passkeys.io,,unranked
+https://unlock-music.dev,unlock-music.dev,,1.0,0.0,community,,unranked
+https://usesarchbtw.lol,usesarchbtw.lol,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://usfcu.org,usfcu.org,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://v4guard.io,v4guard.io,,1.0,0.0,community,,unranked
+https://vaultvision.com,vaultvision.com,,1.0,0.0,community|community:enpass.io|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://vec.fun,vec.fun,,1.0,0.0,community,,unranked
+https://verifythisseal.com,verifythisseal.com,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://vise.no,vise.no,,1.0,0.0,community,,unranked
+https://vivasoftltd.com,vivasoftltd.com,,1.0,0.0,community,,unranked
+https://volteuropa.org,volteuropa.org,,1.0,0.0,community,,unranked
+https://voura.com,voura.com,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.com|community:passkeys.directory,,unranked
+https://vp.no,vp.no,,1.0,0.0,community,,unranked
+https://vrsal.cc,vrsal.cc,,1.0,0.0,community,,unranked
+https://webauthn.io,webauthn.io,,1.0,0.0,community|community:enpass.io|community:fidoalliance.org|community:keepersecurity.com|community:passkeyindex.io|community:passkeys-directory.dashlane.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://webull.com.au,webull.com.au,,1.0,0.0,community|community:passkeys.2stable.com|community:passkeys.directory,,unranked
+https://wildfiregames.com,wildfiregames.com,,1.0,0.0,community,,unranked
+https://wiseinvestment.co.uk,wiseinvestment.co.uk,,1.0,0.0,community,,unranked
+https://yammer.com,yammer.com,,1.0,0.0,community|community:enpass.io,,unranked
+https://zelz.net,zelz.net,,1.0,0.0,community,,unranked
+https://zitadel.com,zitadel.com,,1.0,0.0,community|community:keepersecurity.com|community:passkeys.2stable.com|community:passkeys.directory,,unranked

@@ -29,7 +29,7 @@ import tldextract
 
 # --- args ----------------------------------------------------------------
 ledger_path = sys.argv[1] if len(sys.argv) > 1 else "../targets.csv"
-out_path    = sys.argv[2] if len(sys.argv) > 2 else "../ledger_ranked.csv"
+out_path    = sys.argv[2] if len(sys.argv) > 2 else "../targets_ranked.csv"
 
 # --- pinned CrUX snapshot (matches the corpus's well-known scan month) ----
 HERE = Path(__file__).resolve().parent
@@ -82,7 +82,14 @@ crux_rank = (crux.groupby("etld1")["rank"].min()
                  .rename("crux_rank").reset_index())
 
 # --- Ledger: left-join, preserve everything ------------------------------
-led = pd.read_csv(ledger_path)
+# The ledger CSV may be comma- or semicolon-delimited (Excel/locale exports
+# often use ';'). Let pandas sniff the separator so either works.
+led = pd.read_csv(ledger_path, sep=None, engine="python")
+if "etld1" not in led.columns:
+    raise SystemExit(
+        f"{ledger_path} has no 'etld1' column — found: {list(led.columns)}.\n"
+        f"Check the file's delimiter and header row."
+    )
 led = led.merge(crux_rank, on="etld1", how="left")
 led["crux_rank"] = led["crux_rank"].astype("Int64")   # nullable int, no .0
 

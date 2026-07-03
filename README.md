@@ -54,7 +54,7 @@ See `.gitignore` for sensitive files that shouldn't be committed.
 
 ### 3. Environment (`.env`)
 
-Only the IMAP settings are required (for `fetch_code`):
+IMAP settings are required (for `fetch_code`):
 
 ```
 IMAP_HOST=imap.gmail.com    # optional, this is the default
@@ -110,15 +110,72 @@ canonical_origin,etld1,...
 https://www.notion.so,notion.so,...
 ```
 
-Initialize the ledger from the CSV:
+Preprocessing is the cleanup step before and after the ledger is initialized:
+
+1. Run the CRUX sorter so the highest-priority RPs appear first.
+2. Select the targers; and initialize the ledger from the cleaned CSV.
+3. Run the portal probe against the initialized ledger to confirm there is a reachable
+  login or signup surface.
+
+Use the CRUX sorter from the preprocessing directory:
+
+```powershell
+cd data/preprocessing
+python crux_sort.py
+```
+
+That reads `../targets.csv`, downloads or reuses the pinned CRUX snapshot, and writes
+`../ledger_ranked.csv`.
+
+If you prefer to stay at the repo root, run it with explicit paths instead:
+
+```powershell
+python data/preprocessing/crux_sort.py data/targets.csv data/ledger_ranked.csv
+```
+
+`portal_probe.py` is a deterministic browser probe. It opens a site, dismisses common
+consent banners, looks for login or signup entry points, and follows simple paths such
+as a direct auth link or an account menu that reveals a login option. It runs after
+`python -m src.init`, because it operates on the initialized ledger.
+
+Run it on a single site like this:
+
+```powershell
+python data/preprocessing/portal_probe.py notion.so --headed
+```
+
+Run it against the ledger in batch mode like this:
+
+```powershell
+python data/preprocessing/portal_probe.py --ledger data/ledger.json
+```
+
+In batch mode it records the detected gate state back into the ledger and skips obvious
+academic or government domains unless you pass `--no-structural-skip`.
+
+Initialize the ledger from the CSV after preprocessing:
 
 ```powershell
 python -m src.init
 ```
 
-This populates `data/ledger.json` with one entry per RP and runs triage to flag obvious
-skips (banks, auth subdomains, etc). Use `python -m src.set_signup` to set/override the
-`signup_url` on an entry.
+This populates `data/ledger.json` with one entry per RP. It does not do the login/signup
+check itself; that is part of your preprocessing and discovery workflow.
+
+If a target needs an explicit signup URL, set or override it after init:
+
+```powershell
+python -m src.set_signup notion.so https://www.notion.so/signup
+```
+
+That command updates the ledger entry and resets failed or needs-review items back to
+`pending` so they can be tried again.
+
+If you want the triage view for the raw targets, run:
+
+```powershell
+python -m src.lib.triage data/targets.csv
+```
 
 ## Running
 

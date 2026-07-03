@@ -1,0 +1,7 @@
+playwright>=1.47
+imapclient>=3.0
+python-dotenv>=1.0
+pydantic>=2.0
+pandas>=2.0
+numpy>=2.0
+tldextract>=3.0

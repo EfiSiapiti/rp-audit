@@ -32,10 +32,18 @@ class RpRow:
         return bool(self.enroll_url.strip())
 
 
+def _sniff_delimiter(header_line: str) -> str:
+    """Comma or semicolon? Excel/locale exports often use ';'. Pick whichever
+    separator appears more often in the header row."""
+    return ";" if header_line.count(";") > header_line.count(",") else ","
+
+
 def parse_csv(path: Path | str) -> list[RpRow]:
     rows: list[RpRow] = []
     with open(path, "r", encoding="utf-8", newline="") as f:
-        reader = csv.reader(f)
+        delimiter = _sniff_delimiter(f.readline())
+        f.seek(0)
+        reader = csv.reader(f, delimiter=delimiter)
         header = next(reader)
         # Map header to positions defensively in case columns shift.
         idx = {name: i for i, name in enumerate(header)}
