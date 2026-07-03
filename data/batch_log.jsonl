@@ -1,0 +1,15 @@
+{"at": "2026-07-03T11:08:53.163963+00:00", "rp_id": "facebook.com", "outcome": "captured", "attempts": 1, "note": "manually created via browser, session captured", "source": "manual"}
+{"at": "2026-07-03T11:10:17.731234+00:00", "rp_id": "canva.com", "outcome": "failed", "attempts": 1, "note": "issue from their end", "source": "manual"}
+{"at": "2026-07-03T11:13:26.966373+00:00", "rp_id": "target.com", "outcome": "captured", "attempts": 1, "note": "manually created via browser, session captured", "source": "manual"}
+{"at": "2026-07-03T11:18:26.144918+00:00", "rp_id": "x.com", "outcome": "failed", "attempts": 1, "note": "phone gated/phone number not working", "source": "manual"}
+{"at": "2026-07-03T11:19:03.288503+00:00", "rp_id": "vk.com", "outcome": "failed", "attempts": 1, "note": "phone app", "source": "manual"}
+{"at": "2026-07-03T11:20:39.939181+00:00", "rp_id": "arca.live", "outcome": "failed", "attempts": 1, "note": "excedded account creation limit attempts", "source": "manual"}
+{"at": "2026-07-03T11:21:25.140173+00:00", "rp_id": "boursorama.com", "outcome": "failed", "attempts": 1, "note": "bank-existing account needed", "source": "manual"}
+{"at": "2026-07-03T11:22:08.841411+00:00", "rp_id": "classlink.com", "outcome": "failed", "attempts": 1, "note": "needs existing account", "source": "manual"}
+{"at": "2026-07-03T11:22:22.804720+00:00", "rp_id": "nintendo.com", "outcome": "failed", "attempts": 1, "note": "no login", "source": "manual"}
+{"at": "2026-07-03T11:23:26.765265+00:00", "rp_id": "tiktok.com", "outcome": "failed", "attempts": 1, "note": "code not being snt", "source": "manual"}
+{"at": "2026-07-03T11:30:59.550929+00:00", "rp_id": "github.com", "outcome": "captured", "attempts": 1, "note": "manually created via browser, session captured", "source": "manual"}
+{"at": "2026-07-03T11:31:20.063645+00:00", "rp_id": "homedepot.com", "outcome": "failed", "attempts": 1, "note": "access denied-geo blocked", "source": "manual"}
+{"at": "2026-07-03T11:32:03.816351+00:00", "rp_id": "hubspot.com", "outcome": "failed", "attempts": 1, "note": "product demo", "source": "manual"}
+{"at": "2026-07-03T11:34:08.542621+00:00", "rp_id": "lowes.com", "outcome": "failed", "attempts": 1, "note": "geo-blocked", "source": "manual"}
+{"at": "2026-07-03T11:35:28.624651+00:00", "rp_id": "nikkei.com", "outcome": "captured", "attempts": 1, "note": "manually created via browser, session captured", "source": "manual"}

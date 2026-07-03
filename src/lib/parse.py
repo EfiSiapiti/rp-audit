@@ -32,6 +32,15 @@ class RpRow:
         return bool(self.enroll_url.strip())
 
 
+def _to_int(value: str) -> int:
+    """Coerce a numeric CSV cell to int, tolerating float-formatted integers
+    like '133.0' (common in pandas/Excel exports) and blank cells."""
+    value = (value or "").strip()
+    if not value:
+        return 0
+    return int(float(value))
+
+
 def _sniff_delimiter(header_line: str) -> str:
     """Comma or semicolon? Excel/locale exports often use ';'. Pick whichever
     separator appears more often in the header row."""
@@ -88,8 +97,8 @@ def parse_csv(path: Path | str) -> list[RpRow]:
                 canonical_origin=canonical_origin.strip(),
                 entity=entity.strip(),
                 enroll_url=enroll_url.strip(),
-                cluster_size=int(cluster_size or 0),
-                snapshot_count=int(snapshot_count or 0),
+                cluster_size=_to_int(cluster_size),
+                snapshot_count=_to_int(snapshot_count),
                 source=source.strip(),
             ))
     return rows

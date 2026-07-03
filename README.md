@@ -113,9 +113,6 @@ https://www.notion.so,notion.so,...
 Preprocessing is the cleanup step before and after the ledger is initialized:
 
 1. Run the CRUX sorter so the highest-priority RPs appear first.
-2. Select the targers; and initialize the ledger from the cleaned CSV.
-3. Run the portal probe against the initialized ledger to confirm there is a reachable
-  login or signup surface.
 
 Use the CRUX sorter from the preprocessing directory:
 
@@ -133,30 +130,12 @@ If you prefer to stay at the repo root, run it with explicit paths instead:
 python data/preprocessing/crux_sort.py data/targets.csv data/ledger_ranked.csv
 ```
 
-`portal_probe.py` is a deterministic browser probe. It opens a site, dismisses common
-consent banners, looks for login or signup entry points, and follows simple paths such
-as a direct auth link or an account menu that reveals a login option. It runs after
-`python -m src.init`, because it operates on the initialized ledger.
-
-Run it on a single site like this:
-
-```powershell
-python data/preprocessing/portal_probe.py notion.so --headed
-```
-
-Run it against the ledger in batch mode like this:
-
-```powershell
-python data/preprocessing/portal_probe.py --ledger data/ledger.json
-```
-
-In batch mode it records the detected gate state back into the ledger and skips obvious
-academic or government domains unless you pass `--no-structural-skip`.
+2. Initialize the ledger
 
 Initialize the ledger from the CSV after preprocessing:
 
 ```powershell
-python -m src.init
+python -m src.init targets_selected.csv
 ```
 
 This populates `data/ledger.json` with one entry per RP. It does not do the login/signup
