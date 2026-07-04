@@ -75,7 +75,12 @@ async def capture(rp_id: str, *, set_captured: bool) -> int:
     page = await browsermod.ensure_browser_for(rp_id)
     try:
         print(f"→ navigating to {origin}")
-        await page.goto(origin, wait_until="domcontentloaded")
+        # Bound the nav so a consent-wall / redirect-loop site can't hang the run;
+        # on timeout, continue — you can navigate manually before capturing.
+        try:
+            await page.goto(origin, wait_until="domcontentloaded", timeout=45_000)
+        except Exception as e:
+            print(f"  ⚠ navigation didn't settle ({e}); continuing")
 
         print()
         print("  Confirm in the browser window that this is an AUTHENTICATED")

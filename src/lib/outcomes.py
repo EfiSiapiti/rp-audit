@@ -77,6 +77,12 @@ TERMINAL_NOTE_HINTS = (
     "signup form not found",
     "temporarily blocked",
     "too many failures",
+    # permanent blocks often recorded as a bare `failed` + free-text note
+    "existing account",          # "needs existing account", "bank-existing account needed"
+    "no login",                  # site has no login/signup at all
+    "account creation limit",    # hit the RP's signup rate cap
+    "no portal",
+    "app-only",
 )
 
 

@@ -165,6 +165,59 @@ _CHECKBOX_LABEL_JS = r"""
 """
 
 
+async def fill_verification_code(page, code: str) -> bool:
+    """Best-effort: type a verification code into the page's OTP/code field(s).
+
+    Handles two common layouts: a single code input, and a row of single-
+    character boxes (maxlength=1) that you type one digit into each. Returns
+    True if it typed the whole code somewhere, else False (type it by hand).
+    Never clicks submit.
+    """
+    code = (code or "").strip()
+    if not code:
+        return False
+
+    # 1. A single code field. Most-specific hints first; the bare numeric
+    #    inputmode is last so a phone field doesn't win over a real code box.
+    single_selectors = [
+        "input[autocomplete='one-time-code']",
+        "input[name*='otp' i]", "input[id*='otp' i]",
+        "input[name*='code' i]", "input[id*='code' i]",
+        "input[name*='verif' i]", "input[id*='verif' i]",
+        "input[placeholder*='code' i]",
+        "input[inputmode='numeric']",
+    ]
+    for sel in single_selectors:
+        el = await _first_fillable(page, sel)
+        if el is not None:
+            try:
+                await el.fill(code)
+                return True
+            except Exception:
+                continue
+
+    # 2. A row of single-character boxes — type one digit into each.
+    try:
+        boxes = page.locator("input[maxlength='1']")
+        n = await boxes.count()
+    except Exception:
+        n = 0
+    if n >= len(code):
+        typed = 0
+        for i in range(n):
+            el = boxes.nth(i)
+            try:
+                if not await el.is_visible() or not await el.is_enabled():
+                    continue
+                await el.fill(code[typed])
+                typed += 1
+                if typed >= len(code):
+                    return True
+            except Exception:
+                continue
+    return False
+
+
 async def tick_consent_checkboxes(page, rp_id: str) -> list[str]:
     """Tick required agreement checkboxes (Terms/Privacy/age), leave the rest.
 

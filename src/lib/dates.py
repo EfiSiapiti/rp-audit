@@ -39,13 +39,38 @@ def date_field_order(hint: str) -> list[str]:
     Returns a list of 'm'/'d'/'y' in the order they appear. Falls back to
     US month-day-year when the hint carries no clear d/m/y pattern (so prose
     like "Date of birth" doesn't produce a bogus order).
+
+    Scans multi-character tokens, not single letters: mask tokens (mm/dd/yyyy
+    and locale variants) first, then whole words. The old single-letter scan
+    picked up stray d/m/y from surrounding prose — e.g. "Birthday (mm/dd/yyyy)"
+    matched the d and y in "birthda-y" before reaching the real mask and
+    returned a scrambled order.
     """
-    seen: list[str] = []
-    for ch in (hint or "").lower():
-        if ch in ("d", "m", "y") and ch not in seen:
-            seen.append(ch)
-        if len(seen) == 3:
-            return seen
+    h = (hint or "").lower()
+
+    def _order(token_sets: dict[str, tuple[str, ...]]) -> list[str] | None:
+        positions: list[tuple[int, str]] = []
+        for comp, pats in token_sets.items():
+            idxs = [h.find(p) for p in pats if p in h]
+            if idxs:
+                positions.append((min(idxs), comp))
+        if len(positions) == 3:
+            positions.sort()
+            return [comp for _, comp in positions]
+        return None
+
+    # Tier 1: unambiguous mask tokens.
+    order = _order({"y": ("yyyy", "aaaa", "yy"), "m": ("mm",), "d": ("dd", "jj")})
+    if order:
+        return order
+    # Tier 2: whole words (a few locale variants we actually hit).
+    order = _order({
+        "y": ("year", "año", "jahr"),
+        "m": ("month", "monat", "mois", "mes"),
+        "d": ("day", "tag", "jour", "dia"),
+    })
+    if order:
+        return order
     return ["m", "d", "y"]
 
 

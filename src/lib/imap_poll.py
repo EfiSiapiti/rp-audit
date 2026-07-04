@@ -28,6 +28,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email import message_from_bytes
+from email.header import decode_header, make_header
 from email.message import Message
 from typing import Iterator
 
@@ -45,6 +46,20 @@ class FoundVerification:
 
 
 # --- email parsing -------------------------------------------------------
+
+def _decode_header(raw: str | None) -> str:
+    """Decode a possibly MIME-encoded header (=?UTF-8?B?...?=) to plain text.
+
+    Subjects from non-English RPs (e.g. 日経ID / Nikkei) arrive encoded; without
+    decoding, neither code extraction nor the rp-relation check can read them.
+    """
+    if not raw:
+        return ""
+    try:
+        return str(make_header(decode_header(raw)))
+    except Exception:
+        return str(raw)
+
 
 def _clean_html_to_text(html: str) -> str:
     """Strip HTML to plain text, removing CSS/JS contents (not just tags).
@@ -114,31 +129,43 @@ def _get_preferred_body(msg: Message) -> str:
     return "\n".join(html_parts)
 
 
-def _extract_code(body: str) -> str | None:
-    """Find a likely verification code in the body."""
-    patterns = [
-        r"(?:verification|confirmation|security|access|login|sign[\s-]?in|one[\s-]?time)\s+code(?:\s+is)?[:\s]*([0-9]{4,8})",
-        r"\b([0-9]{4,8})\s+is\s+your\s+(?:verification|confirmation|security|login|sign[\s-]?in|one[\s-]?time)\s+code\b",
-        r"\b[Cc]ode[:\s]+([0-9]{4,8})\b",
-        r"\b([0-9]{4,8})\b\s*(?:to\s+(?:verify|confirm|continue|sign))",
-        r"\benter\s+(?:the\s+)?(?:code\s+)?([0-9]{4,8})\b",
-    ]
-    for pat in patterns:
-        m = re.search(pat, body, flags=re.I)
-        if m:
-            return m.group(1)
+# High-precision, labeled patterns — safe to run against the subject line too.
+_LABELED_CODE_PATTERNS = [
+    r"(?:verification|confirmation|security|access|login|sign[\s-]?in|one[\s-]?time)\s+code(?:\s+is)?[:\s]*([0-9]{4,8})",
+    r"\b([0-9]{4,8})\s+is\s+your\s+(?:verification|confirmation|security|login|sign[\s-]?in|one[\s-]?time)\s+code\b",
+    r"\b[Cc]ode[:\s]+([0-9]{4,8})\b",
+    r"\b([0-9]{4,8})\b\s*(?:to\s+(?:verify|confirm|continue|sign))",
+    r"\benter\s+(?:the\s+)?(?:code\s+)?([0-9]{4,8})\b",
+]
 
-    # Fallback: look for 4-8 digit code on its own line (handles line breaks, whitespace, non-ASCII)
-    # Match: any line breaks + whitespace + 4-8 digits + whitespace + any line breaks
+
+def _extract_code(body: str, subject: str = "") -> str | None:
+    """Find a likely verification code.
+
+    Checks the subject FIRST with the labeled patterns — many providers put the
+    code right in it ("Sign in to Indeed with code: 958619"), and the subject is
+    far less noisy than the body, so this avoids the greedy body fallbacks
+    grabbing an unrelated number (zip codes, order numbers, years).
+    """
+    for text in (subject, body):
+        if not text:
+            continue
+        for pat in _LABELED_CODE_PATTERNS:
+            m = re.search(pat, text, flags=re.I)
+            if m:
+                return m.group(1)
+
+    # Body-only fallbacks — loose, so never run against the subject.
+    # 4-8 digit code alone on a line (handles line breaks / whitespace).
     m = re.search(r"(?:^|\s)\s*([0-9]{4,8})\s+(?:\n|$)", body, flags=re.M)
     if m:
         return m.group(1)
-    
-    # Last resort: look for 6-digit code anywhere with surrounding whitespace
+
+    # Last resort: a 6-digit code anywhere with surrounding whitespace.
     m = re.search(r"\s([0-9]{6})\s", body)
     if m:
         return m.group(1)
-    
+
     return None
 
 
@@ -183,9 +210,16 @@ def _extract_link(body: str, rp_id_stem: str) -> str | None:
 def _is_related_to_rp(msg: Message, rp_id: str) -> bool:
     """Heuristic: does this email look like it's from/about the RP?"""
     stem = rp_id.split(".")[0].lower()  # "ameblo.jp" -> "ameblo"
+    # Match stems: the bare stem, plus a hand-added alias for the one RP whose
+    # mail domain differs from its stem (ameblo.jp sends from ameba.jp). The old
+    # code ran stem.replace("lo","") for *every* RP, which produced junk match
+    # strings (lowes -> "wes", roblox -> "robx") that matched unrelated mail.
+    stems = [stem]
+    if stem == "ameblo":
+        stems.append("ameba")
 
-    sender = (msg.get("From") or "").lower()
-    subject = (msg.get("Subject") or "").lower()
+    sender = _decode_header(msg.get("From")).lower()
+    subject = _decode_header(msg.get("Subject")).lower()
 
     # Extract domain from sender email (e.g., "info@auth.user.ameba.jp" -> "ameba.jp")
     sender_domain = None
@@ -200,7 +234,7 @@ def _is_related_to_rp(msg: Message, rp_id: str) -> bool:
         sender_base = ".".join(sender_parts[-2:]) if len(sender_parts) >= 2 else sender_domain
         
         # Check if stem appears in sender domain at all (covers ameba/ameblo variations)
-        if stem in sender_domain or stem.replace("lo", "") in sender_domain:  # ameblo -> ameba
+        if any(s in sender_domain for s in stems):
             return True
         
         # Check if base domains match
@@ -209,12 +243,12 @@ def _is_related_to_rp(msg: Message, rp_id: str) -> bool:
             return True
 
     # Check subject and body
-    if stem in subject or stem.replace("lo", "") in subject:
+    if any(s in subject for s in stems):
         return True
     
     for body in _walk_text_parts(msg):
         body_lower = body.lower()
-        if stem in body_lower or stem.replace("lo", "") in body_lower:
+        if any(s in body_lower for s in stems):
             return True
     
     return False
@@ -296,8 +330,9 @@ def find_verification(
         if (min_received_dt and internal and
                 internal.replace(tzinfo=timezone.utc) < min_received_dt):
             return None
+        subject = _decode_header(msg.get("Subject"))
         body = _get_preferred_body(msg)
-        code = _extract_code(body)
+        code = _extract_code(body, subject)
         link = _extract_link(body, stem)
         if not code and not link:
             return None
@@ -314,7 +349,7 @@ def find_verification(
         return FoundVerification(
             method=method, value=value,
             sender=(msg.get("From") or "").strip(),
-            subject=(msg.get("Subject") or "").strip(),
+            subject=subject.strip(),
             received_at=received_iso, raw_excerpt=excerpt,
         )
 

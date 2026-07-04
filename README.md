@@ -15,6 +15,9 @@ The workflow has three manual phases, all human-in-the-loop:
 - **Signup** (`scripts/manual_signup.py`) — opens each target RP in its own persistent
   browser profile. You create the account by hand; the tool captures the resulting
   session (cookies + localStorage) to `sessions/<rp>.json` and records the outcome.
+  For heavily-defended RPs whose bot-detection blocks the Playwright browser, a second
+  variant (`scripts/manual_launch.py`) opens the site in a plain, un-automated Chrome
+  instead — see *Signup in a real Chrome* below.
 - **Enrollment / hook observation** (`src/hook/run.py`) — attaches to a long-running
   Chrome instance with `hook.js` loaded. You drive the passkey flow yourself while the
   hook fabricates the credential; the harness captures the network + hook traffic.
@@ -177,6 +180,11 @@ signup form). Assist is all best-effort and never clicks submit:
 
 You still handle multi-step wizards, CAPTCHAs, and the final submit yourself.
 
+At the prompt you can also type `code` to pull the RP's latest email verification code
+from IMAP and type it straight into the OTP field (see *Fetching a verification code*),
+without leaving the flow. Navigation and each assist step are time-bounded, so a heavy
+consent wall (e.g. onet.pl) hands you control instead of freezing the run.
+
 ```powershell
 # One specific RP:
 python -m scripts.manual_signup --rp notion.so
@@ -200,6 +208,29 @@ Each run is recorded across three tiers, flagged `source=manual`: the ledger
 (`data/ledger.json`), a per-run artifact (`artifacts/<rp>/<timestamp>-result.json`), and
 the batch log (`data/batch_log.jsonl`).
 
+### Signup in a real Chrome (heavily-defended RPs)
+
+Some RPs (Discord, X, TikTok, Canva, …) fingerprint the Playwright-launched browser and
+loop their CAPTCHA forever. `scripts/manual_launch.py` launches your normal system Chrome
+directly — no automation switches, its own clean profile under
+`browser-profiles-manual/<rp>` — so you have the best chance of getting through by hand.
+Playwright is used only at the end, over CDP, to read the resulting session; it never
+drives the page during signup. Outcomes are recorded exactly like `manual_signup`
+(ledger + artifact + batch log), flagged `source=manual-chrome`.
+
+```powershell
+# One RP, an explicit list, the next N pending, or every RP in a blocked state:
+python -m scripts.manual_launch --rp discord.com
+python -m scripts.manual_launch --rps discord.com,x.com,tiktok.com
+python -m scripts.manual_launch --batch 10
+python -m scripts.manual_launch --state captcha-blocked
+```
+
+Chrome is auto-detected; pass `--chrome <path>` if needed. It opens one RP per window and
+closes it when you move on, so finish an RP fully before pressing Enter for the next. A
+clean profile is your best shot, not a guarantee — a brand-new profile with no history can
+still be challenged.
+
 ### Recovering a session (no re-signup)
 
 If an account already exists and its `browser-profiles/<rp>` profile is still logged in,
@@ -221,7 +252,10 @@ python -m scripts.fetch_code --rp atlassian.com --newer-than 90   # after a Rese
 python -m scripts.fetch_code --rp atlassian.com --timeout 180
 ```
 
-Needs `IMAP_USER` / `IMAP_PASS` in `.env`.
+Needs `IMAP_USER` / `IMAP_PASS` in `.env`. The code is read from the message **subject** as
+well as the body, and MIME-encoded (non-ASCII) subjects are decoded. During a signup you
+usually don't need this script — type `code` at the `manual_signup` prompt instead, which
+fetches and types the code in one step.
 
 ### Enrollment / hook observation (manual)
 
@@ -330,7 +364,8 @@ src/
     └── triage.py             # RP triage (banks, auth subdomains, etc.)
 
 scripts/
-├── manual_signup.py          # Manual signup + outcome recording
+├── manual_signup.py          # Manual signup + outcome recording (Playwright assist)
+├── manual_launch.py          # Manual signup in a plain real Chrome (heavily-defended RPs)
 ├── capture_session.py        # Recover a session from a logged-in profile
 └── fetch_code.py             # Fetch verification codes from IMAP
 
@@ -344,7 +379,8 @@ artifacts/
 └── hook-runs/                # Manual hook harness run artifacts
 
 sessions/                     # Captured signup sessions (cookies + localStorage)
-browser-profiles/             # Persistent profile dirs for per-RP browsers
+browser-profiles/             # Persistent profile dirs for per-RP browsers (Playwright)
+browser-profiles-manual/      # Clean real-Chrome profiles for manual_launch.py
 ```
 
 ## Data Flow
@@ -385,3 +421,13 @@ Pass `--no-localstorage` to `src.hook.run` to restore cookies only.
 - Confirm `IMAP_USER` / `IMAP_PASS` are set in `.env` (Gmail needs an app password).
 - Widen the search window with `--lookback` / `--timeout`, and use `--newer-than` after a
   Resend to skip a stale code.
+- Codes are matched from both the subject and body; if the wrong number is picked up,
+  forward the email body so the body patterns can be tightened.
+
+### Signup browser hangs, or the CAPTCHA never resolves
+
+Heavy consent walls (e.g. onet.pl) and aggressive bot-detection are expected on some RPs.
+`manual_signup` bounds navigation and each assist step, so it won't freeze — it hands you
+control within ~30s (you may see `⚠ … skipped; continuing` lines; that's normal). If an
+RP's CAPTCHA loops forever in the Playwright browser, retry it in a real Chrome with
+`scripts/manual_launch.py`, or record it as `captcha-blocked` and move on.

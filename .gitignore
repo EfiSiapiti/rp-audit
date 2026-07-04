@@ -2,6 +2,7 @@
 identity.json
 sessions/*.json
 browser-profiles/
+browser-profiles-manual/
 artifacts/
 data/ledger.json
 __pycache__/

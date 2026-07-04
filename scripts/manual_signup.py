@@ -38,10 +38,13 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from scripts.capture_session import _origin_for, capture_session_file
 from src.lib import autofill
 from src.lib import browser as browsermod
 from src.lib import consent
+from src.lib import imap_poll
 from src.lib import ledger
 from src.lib import outcomes
 from src.lib import page_scan
@@ -77,37 +80,42 @@ async def _assist(page, rp_id: str) -> None:
     dismiss a cookie banner, autofill the signup fields, tick required Terms/
     Privacy checkboxes, then scan for blockers and hint at the outcome. Every
     step is soft — a failure prints a warning and moves on; nothing here clicks
-    submit, so you stay in control of the actual account creation."""
+    submit, so you stay in control of the actual account creation.
+
+    Each step is wrapped in a timeout: on a page that never settles (heavy
+    consent iframes, redirect loops — e.g. onet.pl) a Playwright call into a
+    still-navigating frame can block forever, which would freeze the whole run.
+    A step that overruns is abandoned and we move on."""
     # 1. Cookie/consent banner.
     try:
-        dismissed = await consent.dismiss_consent_banner(page)
+        dismissed = await asyncio.wait_for(consent.dismiss_consent_banner(page), timeout=15)
         if dismissed:
             print(f"  ✓ consent banner dismissed ({dismissed})")
     except Exception as e:
-        print(f"  ⚠ consent dismiss error (continuing): {e}")
+        print(f"  ⚠ consent dismiss skipped ({type(e).__name__}); continuing")
 
     # 2. Autofill known signup fields.
     try:
-        filled = await autofill.autofill(page, rp_id)
+        filled = await asyncio.wait_for(autofill.autofill(page, rp_id), timeout=20)
         if filled:
             parts = ", ".join(f"{k}={v}" for k, v in filled.items())
             print(f"  ✓ autofill: {parts}")
         else:
             print("  · autofill: nothing matched on this page")
     except Exception as e:
-        print(f"  ⚠ autofill error (continuing): {e}")
+        print(f"  ⚠ autofill skipped ({type(e).__name__}); continuing")
 
     # 3. Tick required agreement checkboxes (leave marketing/newsletter alone).
     try:
-        ticked = await autofill.tick_consent_checkboxes(page, rp_id)
+        ticked = await asyncio.wait_for(autofill.tick_consent_checkboxes(page, rp_id), timeout=15)
         if ticked:
             print(f"  ✓ ticked agreement box(es): {'; '.join(ticked)}")
     except Exception as e:
-        print(f"  ⚠ checkbox tick error (continuing): {e}")
+        print(f"  ⚠ checkbox tick skipped ({type(e).__name__}); continuing")
 
     # 4. Read-only scan: blockers + whether we're on an auth surface.
     try:
-        res = await page_scan.scan(page)
+        res = await asyncio.wait_for(page_scan.scan(page), timeout=20)
         for outcome, evidence in res.blockers:
             print(f"  ⚑ looks like '{outcome}' — {evidence}")
         if not res.blockers:
@@ -117,18 +125,54 @@ async def _assist(page, rp_id: str) -> None:
                 print("  · no auth form detected yet — click through to the signup form, "
                       "then type 'fill'")
     except Exception as e:
-        print(f"  ⚠ scan error (continuing): {e}")
+        print(f"  ⚠ scan skipped ({type(e).__name__}); continuing")
+
+
+async def _fetch_code(page, rp_id: str) -> None:
+    """Poll IMAP for this RP's latest verification code/link and, if it's a code,
+    try to type it into the page. Best-effort; prints what it found. Run this
+    after you've submitted the form so the email has actually been sent."""
+    print("  · polling IMAP for a verification code (up to 90s)…")
+    try:
+        # find_verification is blocking (it sleeps between polls) — run it off the
+        # event loop so the browser stays responsive during the wait.
+        found = await asyncio.to_thread(
+            imap_poll.find_verification, rp_id,
+            timeout_seconds=90, lookback_minutes=15,
+        )
+    except Exception as e:
+        print(f"  ⚠ IMAP error: {e}")
+        return
+    if not found:
+        print("  ✗ no code/link found — submit the form first, then retry 'code' "
+              "once the email arrives")
+        return
+    if found.method == "code":
+        print(f"  ✓ code: {found.value}   (from {found.sender}, "
+              f"subj {found.subject[:50]!r})")
+        try:
+            filled = await autofill.fill_verification_code(page, found.value)
+        except Exception as e:
+            filled = False
+            print(f"  ⚠ code autofill error: {e}")
+        print("  ✓ typed the code into the page — check it, then submit" if filled
+              else "  · no code field found — type it in by hand")
+    else:
+        print(f"  ✓ link: {found.value}")
+        print("    open it in the browser window to continue verification.")
 
 
 async def _prompt_outcome(rp_id: str, page) -> str | None:
     """Read a valid outcome from the console. Blank skips the RP (returns None).
     Typing `fill` re-runs the assist bundle (dismiss banner, autofill, tick
     consent, scan) against the current page — do that after you've navigated to
-    the actual signup form."""
+    the actual signup form. Typing `code` polls IMAP for the verification code
+    and types it into the page — do that after you've submitted the form."""
     valid = sorted(outcomes.AGENT_OUTCOMES)
     print(f"\n  Outcome for {rp_id}:")
     print(f"    valid: {', '.join(valid)}")
-    print("    ('fill' = re-run assist on this page, blank = skip and leave pending)")
+    print("    ('fill' = re-run assist, 'code' = fetch email code via IMAP, "
+          "blank = skip and leave pending)")
     while True:
         choice = input("  outcome> ").strip()
         if choice == "":
@@ -136,10 +180,13 @@ async def _prompt_outcome(rp_id: str, page) -> str | None:
         if choice.lower() in ("fill", "f"):
             await _assist(page, rp_id)
             continue
+        if choice.lower() in ("code", "otp"):
+            await _fetch_code(page, rp_id)
+            continue
         if choice in outcomes.AGENT_OUTCOMES:
             return choice
         print(f"  ! '{choice}' is not a valid outcome — try again "
-              f"(or 'fill', or blank to skip)")
+              f"(or 'fill', 'code', or blank to skip)")
 
 
 async def _record_outcome(rp_id: str, outcome: str, note: str, *,
@@ -216,14 +263,22 @@ async def _process_one(rp_id: str) -> str | None:
     started = _now()
     page = await browsermod.ensure_browser_for(rp_id)
     print(f"→ navigating to {origin}")
-    await page.goto(origin, wait_until="domcontentloaded")
+    # Some RPs (heavy consent walls / redirect chains, e.g. onet.pl) never reach
+    # 'domcontentloaded'. wait_until="commit" returns as soon as the server
+    # responds, so the page keeps loading in the visible window while you drive,
+    # and a bare goto can't hang the batch. Still bounded, and soft on failure.
+    try:
+        await page.goto(origin, wait_until="commit", timeout=30_000)
+    except Exception as e:
+        print(f"  ⚠ navigation didn't settle ({type(e).__name__}); continuing — "
+              f"drive it manually, then type 'fill'")
     # Best-effort assist on the landing page. Most RPs need you to click through
     # to the signup form first — type 'fill' at the prompt to re-run assist
     # there. Nothing here clicks submit or fills a field you've already filled.
     await _assist(page, rp_id)
     print("  Drive the site in the browser window. Navigate to the signup form,")
-    print("  type 'fill' to auto-handle it, finish the parts assist can't, then")
-    print("  type the outcome (created the account, or hit a blocker) below.")
+    print("  type 'fill' to auto-handle it, 'code' to pull an email code via IMAP")
+    print("  after submitting, finish the rest, then type the outcome below.")
 
     outcome = await _prompt_outcome(rp_id, page)
     if outcome is None:
@@ -276,6 +331,7 @@ async def run(rp_ids: list[str]) -> int:
 
 
 def main() -> None:
+    load_dotenv()  # IMAP_USER / IMAP_PASS for the 'code' command
     ap = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
