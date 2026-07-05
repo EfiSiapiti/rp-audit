@@ -122,6 +122,38 @@ def update_state(ledger: dict, rp_id: str, new_state: str, *, note: str = "",
     save(ledger)
 
 
+def record_advertised_params(rp_id: str, params: dict, *, artifact: str = "") -> None:
+    """Record the WebAuthn options an RP advertised, without changing its state.
+
+    Loads the ledger fresh, stores `params` (plus capture metadata) under
+    entry["advertised_params"], appends a history note, and saves atomically.
+    A stub entry is created if the rp_id is absent, so ad-hoc hook runs
+    (e.g. --no-restore against a site not in the ledger) still get recorded.
+    Unlike update_state, this is state-neutral: entry["state"] is untouched.
+    """
+    led = load()
+    entries = led.setdefault("entries", {})
+    entry = entries.get(rp_id)
+    if entry is None:
+        entry = entries[rp_id] = {
+            "rp_id": rp_id,
+            "state": "pending",
+            "history": [{"at": _now(), "state": "pending", "note": "auto-created for advertised-params capture"}],
+            "attempts": 0,
+        }
+    entry["advertised_params"] = {
+        **params,
+        "captured_at": _now(),
+        "artifact": artifact,
+    }
+    entry.setdefault("history", []).append({
+        "at": _now(),
+        "state": entry.get("state", ""),
+        "note": "recorded advertised WebAuthn params",
+    })
+    save(led)
+
+
 def increment_attempts(ledger: dict, rp_id: str) -> int:
     entry = ledger["entries"][rp_id]
     entry["attempts"] = entry.get("attempts", 0) + 1

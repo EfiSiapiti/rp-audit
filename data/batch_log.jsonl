@@ -134,3 +134,35 @@
 {"at": "2026-07-04T07:41:44.773020+00:00", "rp_id": "noupe.com", "outcome": "captured", "attempts": 1, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}
 {"at": "2026-07-04T07:42:00.461844+00:00", "rp_id": "0pass.com", "outcome": "failed", "attempts": 1, "note": "paid service", "source": "manual-chrome"}
 {"at": "2026-07-04T07:43:35.751744+00:00", "rp_id": "aero.zip", "outcome": "captured", "attempts": 1, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}
+{"at": "2026-07-04T07:52:55.357323+00:00", "rp_id": "afasonline.nl", "outcome": "failed", "attempts": 1, "note": "requires existing account", "source": "manual-chrome"}
+{"at": "2026-07-04T07:53:08.681442+00:00", "rp_id": "allspice.io", "outcome": "failed", "attempts": 1, "note": "paid service", "source": "manual-chrome"}
+{"at": "2026-07-04T07:53:21.731037+00:00", "rp_id": "alterware.dev", "outcome": "failed", "attempts": 1, "note": "dev site", "source": "manual-chrome"}
+{"at": "2026-07-04T07:54:18.413997+00:00", "rp_id": "traktor.no", "outcome": "failed", "attempts": 1, "note": "requires existing account", "source": "manual-chrome"}
+{"at": "2026-07-04T07:58:32.577755+00:00", "rp_id": "transferwise.com", "outcome": "captured", "attempts": 1, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}
+{"at": "2026-07-04T07:58:53.028367+00:00", "rp_id": "tromsoby.no", "outcome": "failed", "attempts": 1, "note": "requires scandinavian phone number", "source": "manual-chrome"}
+{"at": "2026-07-04T07:59:10.719972+00:00", "rp_id": "tronderdebatt.no", "outcome": "failed", "attempts": 1, "note": "requires scandinavian phone number", "source": "manual-chrome"}
+{"at": "2026-07-04T07:59:30.657568+00:00", "rp_id": "trusona.com", "outcome": "failed", "attempts": 1, "note": "paid service", "source": "manual-chrome"}
+{"at": "2026-07-04T08:14:12.056132+00:00", "rp_id": "trustworthy.com", "outcome": "captured", "attempts": 1, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}
+{"at": "2026-07-04T08:21:11.889564+00:00", "rp_id": "tutumway.com", "outcome": "failed", "attempts": 1, "note": "website unavailable", "source": "manual-chrome"}
+{"at": "2026-07-04T08:21:30.468066+00:00", "rp_id": "uninbox.com", "outcome": "failed", "attempts": 1, "note": "paid service", "source": "manual-chrome"}
+{"at": "2026-07-04T08:21:56.104651+00:00", "rp_id": "unlock-music.dev", "outcome": "failed", "attempts": 1, "note": "broken site", "source": "manual-chrome"}
+{"at": "2026-07-04T08:22:08.884940+00:00", "rp_id": "usesarchbtw.lol", "outcome": "failed", "attempts": 1, "note": "broken site", "source": "manual-chrome"}
+{"at": "2026-07-04T08:22:44.465740+00:00", "rp_id": "usfcu.org", "outcome": "failed", "attempts": 1, "note": "requires social security number", "source": "manual-chrome"}
+{"at": "2026-07-04T08:26:01.504460+00:00", "rp_id": "vaultvision.com", "outcome": "captured", "attempts": 1, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}
+{"at": "2026-07-04T08:26:18.858096+00:00", "rp_id": "vec.fun", "outcome": "failed", "attempts": 1, "note": "manually recorded (real Chrome): failed", "source": "manual-chrome"}
+{"at": "2026-07-04T08:28:06.225131+00:00", "rp_id": "verifythisseal.com", "outcome": "captured", "attempts": 1, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}
+{"at": "2026-07-04T08:28:40.013687+00:00", "rp_id": "vise.no", "outcome": "failed", "attempts": 1, "note": "requires scandinavian phone number", "source": "manual-chrome"}
+{"at": "2026-07-04T08:28:53.322835+00:00", "rp_id": "vivasoftltd.com", "outcome": "failed", "attempts": 1, "note": "paid service", "source": "manual-chrome"}
+{"at": "2026-07-04T08:29:25.519751+00:00", "rp_id": "volteuropa.org", "outcome": "failed", "attempts": 1, "note": "no login", "source": "manual-chrome"}
+{"at": "2026-07-04T08:30:07.136550+00:00", "rp_id": "voura.com", "outcome": "failed", "attempts": 1, "note": "depreciated site", "source": "manual-chrome"}
+{"at": "2026-07-04T08:31:17.936086+00:00", "rp_id": "vp.no", "outcome": "failed", "attempts": 1, "note": "requires scandinavian phone number", "source": "manual-chrome"}
+{"at": "2026-07-04T08:31:39.144248+00:00", "rp_id": "vrsal.cc", "outcome": "failed", "attempts": 1, "note": "no login", "source": "manual-chrome"}
+{"at": "2026-07-04T08:32:04.416255+00:00", "rp_id": "webauthn.io", "outcome": "failed", "attempts": 1, "note": "test site by webauthn.io no login", "source": "manual-chrome"}
+{"at": "2026-07-04T08:33:55.830684+00:00", "rp_id": "webull.com.au", "outcome": "captured", "attempts": 1, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}
+{"at": "2026-07-04T08:34:20.494364+00:00", "rp_id": "wildfiregames.com", "outcome": "failed", "attempts": 1, "note": "no login", "source": "manual-chrome"}
+{"at": "2026-07-04T08:35:10.989633+00:00", "rp_id": "wiseinvestment.co.uk", "outcome": "failed", "attempts": 1, "note": "requires existing account", "source": "manual-chrome"}
+{"at": "2026-07-04T08:35:23.841607+00:00", "rp_id": "yammer.com", "outcome": "failed", "attempts": 1, "note": "microsoft login only", "source": "manual-chrome"}
+{"at": "2026-07-04T08:35:42.049669+00:00", "rp_id": "zelz.net", "outcome": "failed", "attempts": 1, "note": "no cert-broken site", "source": "manual-chrome"}
+{"at": "2026-07-04T08:38:37.006788+00:00", "rp_id": "zitadel.com", "outcome": "captured", "attempts": 1, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}
+{"at": "2026-07-04T08:47:53.905939+00:00", "rp_id": "microsoft.com", "outcome": "captured", "attempts": 2, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}
+{"at": "2026-07-04T08:55:41.679595+00:00", "rp_id": "nintendo.com", "outcome": "captured", "attempts": 3, "note": "manually created in real Chrome, session captured", "source": "manual-chrome"}

@@ -159,6 +159,13 @@ If you want the triage view for the raw targets, run:
 python -m src.lib.triage data/targets.csv
 ```
 
+To copy the current ledger `state` and last history `note` into a selected-target
+CSV, run:
+
+```powershell
+python -m src.sync_selected_status_notes data/targets_selected.csv data/targets_selected_status.csv
+```
+
 ## Running
 
 ### Signup phase (manual)
@@ -269,6 +276,102 @@ python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-acco
 You drive the browser; the harness dumps captured traffic to
 `artifacts/hook-runs/<rp>/<timestamp>/` when you press Enter.
 
+`--enroll-url` is optional. Omit it when you don't know the passkey page — just run and
+navigate there yourself. Capture binds to every open tab *and* to any tab/popup opened
+during the run, so it follows you even when the ceremony runs on a different origin (e.g.
+`accounts.meta.com` for Facebook). Keep that tab open until you press Enter.
+
+```powershell
+python -m src.hook.run --rp facebook.com --no-restore   # navigate to the passkey page by hand
+```
+
+#### Advertised-parameter capture (automatic)
+
+On every hook run, in addition to the raw network/console dumps, the harness pulls the
+hook's own **structured** event log (`window.__webauthnObserverGetLogs()`, gathered from
+every frame — some RPs run WebAuthn in a same-origin iframe) and writes it to
+`observer_log.json` in the run's artifact dir. The console text capture mangles the nested
+option objects, so this is the reliable source for what the RP advertised in
+`PublicKeyCredentialCreationOptions`.
+
+`hook.js` also mirrors its event log to the extension's `chrome.storage.local` on every
+event, so a ceremony is recovered even if the RP closes/navigates the tab that ran it (common
+right after registration — e.g. Facebook's `accounts.meta.com` popup). At capture time the
+harness reads that cross-origin store back through any hooked tab, and if only a blank tab is
+left it briefly opens `https://example.com` to get a hook context that can read it. So you no
+longer have to keep the exact ceremony tab open — but reload the extension after updating
+`hook.js`/`background.js` for this to take effect.
+
+The advertised options are then recorded **automatically**, no extra command:
+
+- into the ledger, under `entries[<rp>]["advertised_params"]` (state-neutral — the RP's
+  `state` is not changed), via `ledger.record_advertised_params`;
+- into `data/targets_selected_status.csv`, upserting the row keyed by `etld1` and leaving
+  every other row untouched (`src/lib/webauthn_params.py`). Two groups of columns:
+  - **`adv_*` — what the RP *requested*:** `adv_rp_id`, `adv_attestation`, `adv_uv`,
+    `adv_resident_key`, `adv_require_resident_key`, `adv_authenticator_attachment`, `adv_algs`,
+    `adv_attestation_formats`, `adv_hints`, `adv_extensions`, `adv_timeout`, `adv_captured_at`.
+    `adv_rp_id` is the id the ceremony actually advertised, which can differ from your target
+    label — e.g. `facebook.com` registers under `accounts.meta.com`.
+  - **`fab_*` — what the hook *returned* + outcome:** `fab_alg` (e.g. `RS256(-257)`),
+    `fab_alg_offered` (was that alg in the RP's `pubKeyCredParams`? `false` = a downgrade),
+    `fab_flags` (the authData bits set, e.g. `UP,UV,BE,AT`), `fab_outcome`
+    (`fabricated` = browser returned a credential; `create-failed:<Error>` = the browser
+    rejected it). Note `fab_outcome=fabricated` does **not** mean the RP accepted it —
+    server-side acceptance/rejection is in the run's `network.json` (`/finish` response).
+    So a rejected registration still records the requested params, the given params, and the
+    outcome.
+
+The ledger is the source of truth; the CSV is a projection. Re-running
+`python -m src.sync_selected_status_notes` reprojects the same `adv_*` columns from the
+ledger for **all** RPs — use it to backfill the sheet from runs captured earlier. The
+sync now preserves the status file's existing delimiter (that file is `;`-delimited), so a
+resync won't reformat it.
+
+#### Exercising the fabrication controls (hook.js)
+
+The fabricated credential's behavior is set by constants at the top of `hook.js` (in the
+`pwned-xploit` extension repo); edit them and reload the extension between scenarios:
+
+- `SET_USER_VERIFIED` (UV, control d), `SET_BACKUP_ELIGIBLE` / `SET_BACKUP_STATE`
+  (BE/BS, control e) drive the authenticator-data flags byte. Setting `SET_BACKUP_STATE`
+  without `SET_BACKUP_ELIGIBLE` is spec-invalid (BS⇒BE) and logs a warning — that
+  misconfiguration is itself a probe of whether the RP rejects it.
+- `FABRICATION_ALG` (ES256/RS256) and the weak-RSA `RSA_PUBLIC_EXPONENT` cover the
+  algorithm-downgrade (c) and bad-key-parameter (5) controls; `AAGUID` vs `fmt:"none"`
+  probes attestation handling (a).
+
+The emitted flags are logged per operation as `fabrication.flags` in the observer log.
+
+#### Managing fabricated keys (chrome.storage)
+
+The fabricated keypairs `hook.js` creates are persisted in the extension's
+`chrome.storage.local` (under `fabricatedKeys`, keyed by rpId) so they survive reloads and
+are available across origins. This store is **separate** from the audit ledger/sessions —
+"Resetting a single RP" below does not touch it.
+
+Manage them from the DevTools **Console** of any tab where the hook is installed (the
+helpers live on `window` in the page's main world):
+
+```js
+// List what's stored (rpId, credId, createdAt, hasPrivateKey):
+await window.__webauthnObserverDumpKeys();
+
+// Delete ALL stored fabricated keys (this is all-or-nothing):
+await window.__webauthnObserverClearKeys();
+
+// The persisted event log is stored separately; clear it if it gets noisy:
+await window.__webauthnObserverClearPersistedLog();
+```
+
+`__webauthnObserverClearKeys` clears the persisted store and the calling tab's in-memory
+cache; reload any other open tabs so their caches reset too. There is currently no built-in
+per-RP delete — to drop a single RP's key you either clear all and re-register the others,
+or edit `chrome.storage.local` directly (extension service worker DevTools →
+Application → Storage). If you need per-RP deletion (e.g. for the "re-register a revoked
+key" control), it's a small addition to `background.js`/`bridge.js`/`hook.js` — ask and it
+can be wired in.
+
 ## Quick Start: Single-Site Test
 
 ### 1. Make sure the site is in the ledger
@@ -320,8 +423,10 @@ python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-acco
 - **Signup artifacts:** `artifacts/<rp>/<timestamp>-result.json` — outcome, note, and any
   evidence screenshot.
 - **Hook-run artifacts:** `artifacts/hook-runs/<rp>/<timestamp>/` — network and console
-  captures from `src.hook.run`.
-- **Ledger:** `data/ledger.json` — terminal state and history per RP.
+  captures from `src.hook.run`, plus `observer_log.json` (the hook's structured event log)
+  and the advertised params it yields.
+- **Ledger:** `data/ledger.json` — terminal state and history per RP (plus
+  `advertised_params` once a hook run has recorded them).
 - **Batch log:** `data/batch_log.jsonl` — one line per recorded run.
 
 ### Resetting a single RP
@@ -361,6 +466,7 @@ src/
     ├── run_record.py         # Shared run-record writers (ledger/artifact/batch log)
     ├── snapshot.py           # Page snapshot helpers
     ├── dates.py              # Date parsing helpers
+    ├── webauthn_params.py    # Advertised-params extract + ledger/CSV projection
     └── triage.py             # RP triage (banks, auth subdomains, etc.)
 
 scripts/

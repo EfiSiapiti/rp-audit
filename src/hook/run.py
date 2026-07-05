@@ -44,7 +44,7 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright, Page, Request, Response, BrowserContext
 
-from src.lib import idb
+from src.lib import idb, ledger, webauthn_params
 
 
 load_dotenv()
@@ -139,68 +139,157 @@ async def _hydrate_indexeddb_for_origin(page: Page, state: dict, origin: str) ->
     return await idb.restore_indexeddb(page, dbs)
 
 
-def _setup_capture(page: Page) -> dict:
-    """Register listeners to capture network + console activity."""
-    captured = {
+async def _collect_observer_logs(ctx: BrowserContext) -> list:
+    """Pull window.__webauthnObserverGetLogs() from every frame of every open tab.
+
+    This is the reliable source for the advertised options — the console text we
+    capture separately mangles the structured payload objects. We sweep the whole
+    context, not just the attached tab, because RPs often run the ceremony in a
+    different origin/tab than the one you started on (e.g. facebook.com registers
+    passkeys under accounts.meta.com in a separate tab), and sometimes inside a
+    same-origin iframe. Returns a per-frame list of {frame_url, entries}, which
+    webauthn_params.extract_advertised understands.
+    """
+    out: list = []
+    for page in ctx.pages:
+        for frame in page.frames:
+            try:
+                entries = await asyncio.wait_for(frame.evaluate(
+                    "() => (window.__webauthnObserverGetLogs ? window.__webauthnObserverGetLogs() : null)"
+                ), timeout=5)
+            except Exception:
+                entries = None
+            if entries:
+                out.append({"frame_url": frame.url, "entries": entries})
+    return out
+
+
+async def _load_persisted_logs(ctx: BrowserContext) -> list:
+    """Read the cross-origin persisted event log from chrome.storage.
+
+    hook.js mirrors its log to storage on every event, so this recovers the
+    ceremony even when the tab/popup that ran it has since closed or navigated
+    away (the in-memory log is gone by then). Any single hooked tab can read the
+    whole store, so we stop at the first frame that answers. Returns the same
+    per-frame shape as _collect_observer_logs.
+    """
+    for page in ctx.pages:
+        for frame in page.frames:
+            try:
+                logs = await asyncio.wait_for(frame.evaluate(
+                    "async () => (window.__webauthnObserverLoadPersistedLog "
+                    "? await window.__webauthnObserverLoadPersistedLog() : null)"
+                ), timeout=6)
+            except Exception:
+                logs = None
+            if logs:
+                out = []
+                for slot in logs.values():
+                    if isinstance(slot, dict) and slot.get("entries"):
+                        out.append({
+                            "frame_url": slot.get("url") or slot.get("origin") or "(persisted)",
+                            "entries": slot["entries"],
+                        })
+                if out:
+                    return out
+    return []
+
+
+def _dedupe_frame_blocks(blocks: list) -> list:
+    """Drop frame blocks with identical entries (live sweep and the persisted
+    log return the same events for a still-open tab)."""
+    seen: set = set()
+    out: list = []
+    for b in blocks:
+        key = json.dumps(b.get("entries"), sort_keys=True, default=str)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(b)
+    return out
+
+
+def _new_capture() -> dict:
+    """A fresh capture accumulator shared across every tab we listen on."""
+    return {
         "requests": [],
         "responses": [],
         "batchexecute": [],
         "webauthn": [],
         "console": [],
         "page_errors": [],
+        "observer_log": None,
     }
 
+
+def _attach_listeners(page: Page, captured: dict) -> None:
+    """Wire network + console listeners on `page`, accumulating into `captured`.
+
+    Called for the attached tab and for every other/new tab in the context, so a
+    manually-driven flow that navigates or pops up a different origin (e.g.
+    accounts.meta.com) is still captured — no --enroll-url needed.
+    """
+
     async def on_request(req: Request) -> None:
-        rec = {
-            "ts": _ts(),
-            "method": req.method,
-            "url": req.url,
-            "resource_type": req.resource_type,
-            "headers": dict(req.headers),
-            "post_data": None,
-        }
+        # Outer guard: during teardown (browser/tab closing) any access can raise
+        # TargetClosedError; swallow it so it never becomes an unretrieved-future
+        # exception spamming the console after a successful run.
         try:
-            if req.method == "POST":
-                rec["post_data"] = req.post_data
+            rec = {
+                "ts": _ts(),
+                "method": req.method,
+                "url": req.url,
+                "resource_type": req.resource_type,
+                "headers": dict(req.headers),
+                "post_data": None,
+            }
+            try:
+                if req.method == "POST":
+                    rec["post_data"] = req.post_data
+            except Exception:
+                pass
+            captured["requests"].append(rec)
+            if "batchexecute" in req.url:
+                captured["batchexecute"].append(rec)
+                print(f"  · batchexecute POST → {urlparse(req.url).path}")
+            if _WEBAUTHN_URL_RE.search(req.url):
+                captured["webauthn"].append({"kind": "request", **rec})
+                print(f"  · webauthn {req.method} → {urlparse(req.url).path}")
         except Exception:
-            pass
-        captured["requests"].append(rec)
-        if "batchexecute" in req.url:
-            captured["batchexecute"].append(rec)
-            print(f"  · batchexecute POST → {urlparse(req.url).path}")
-        if _WEBAUTHN_URL_RE.search(req.url):
-            captured["webauthn"].append({"kind": "request", **rec})
-            print(f"  · webauthn {req.method} → {urlparse(req.url).path}")
+            return
 
     async def on_response(resp: Response) -> None:
-        rec = {
-            "ts": _ts(),
-            "url": resp.url,
-            "status": resp.status,
-            "headers": dict(resp.headers),
-            "body": None,
-            "body_encoding": None,
-        }
-        # Capture the body for data responses only (xhr/fetch/document). The
-        # WebAuthn begin response (challenge/options JSON) and the finish result
-        # are the payloads we actually want to compare across RPs.
         try:
-            if resp.request.resource_type in _BODY_RESOURCE_TYPES:
-                raw = await resp.body()
-                if raw is not None and len(raw) <= _MAX_BODY_BYTES:
-                    try:
-                        rec["body"] = raw.decode("utf-8")
-                        rec["body_encoding"] = "utf-8"
-                    except UnicodeDecodeError:
-                        rec["body"] = base64.b64encode(raw).decode("ascii")
-                        rec["body_encoding"] = "base64"
-                elif raw is not None:
-                    rec["body_encoding"] = f"omitted ({len(raw)} bytes > cap)"
+            rec = {
+                "ts": _ts(),
+                "url": resp.url,
+                "status": resp.status,
+                "headers": dict(resp.headers),
+                "body": None,
+                "body_encoding": None,
+            }
+            # Capture the body for data responses only (xhr/fetch/document). The
+            # WebAuthn begin response (challenge/options JSON) and the finish result
+            # are the payloads we actually want to compare across RPs.
+            try:
+                if resp.request.resource_type in _BODY_RESOURCE_TYPES:
+                    raw = await resp.body()
+                    if raw is not None and len(raw) <= _MAX_BODY_BYTES:
+                        try:
+                            rec["body"] = raw.decode("utf-8")
+                            rec["body_encoding"] = "utf-8"
+                        except UnicodeDecodeError:
+                            rec["body"] = base64.b64encode(raw).decode("ascii")
+                            rec["body_encoding"] = "base64"
+                    elif raw is not None:
+                        rec["body_encoding"] = f"omitted ({len(raw)} bytes > cap)"
+            except Exception:
+                pass  # body may be unavailable (redirect, cached, already consumed)
+            captured["responses"].append(rec)
+            if _WEBAUTHN_URL_RE.search(resp.url):
+                captured["webauthn"].append({"kind": "response", **rec})
         except Exception:
-            pass  # body may be unavailable (redirect, cached, already consumed)
-        captured["responses"].append(rec)
-        if _WEBAUTHN_URL_RE.search(resp.url):
-            captured["webauthn"].append({"kind": "response", **rec})
+            return  # target closed during teardown — ignore
 
     def on_console(msg) -> None:
         captured["console"].append({
@@ -219,8 +308,11 @@ def _setup_capture(page: Page) -> dict:
     page.on("response", on_response)
     page.on("console", on_console)
     page.on("pageerror", on_pageerror)
-
-    return captured
+    # Swallow Playwright's internal pyee listener errors (e.g. the benign
+    # "framedetached / list.remove(x): x not in list" that fires on churny tabs
+    # like chrome://new-tab-page). These are harmless bookkeeping races; without
+    # a handler pyee prints a scary traceback that looks like a crash.
+    page.on("error", lambda *_: None)
 
 
 def _dump_capture(captured: dict, out_dir: Path) -> None:
@@ -234,12 +326,16 @@ def _dump_capture(captured: dict, out_dir: Path) -> None:
     if captured["webauthn"]:
         with open(out_dir / "webauthn.json", "w", encoding="utf-8") as f:
             json.dump(captured["webauthn"], f, indent=2, default=str)
+    if captured.get("observer_log"):
+        with open(out_dir / "observer_log.json", "w", encoding="utf-8") as f:
+            json.dump(captured["observer_log"], f, indent=2, default=str)
     with open(out_dir / "console.json", "w", encoding="utf-8") as f:
         json.dump(captured["console"], f, indent=2, default=str)
     if captured["page_errors"]:
         with open(out_dir / "page_errors.json", "w", encoding="utf-8") as f:
             json.dump(captured["page_errors"], f, indent=2, default=str)
 
+    observer_frames = captured.get("observer_log") or []
     summary = {
         "requests": len(captured["requests"]),
         "responses": len(captured["responses"]),
@@ -247,6 +343,7 @@ def _dump_capture(captured: dict, out_dir: Path) -> None:
         "webauthn": len(captured["webauthn"]),
         "console": len(captured["console"]),
         "page_errors": len(captured["page_errors"]),
+        "observer_log_frames": len(observer_frames),
     }
     print(f"\n  capture summary: {summary}")
     print(f"  → {out_dir}")
@@ -326,7 +423,9 @@ async def main():
         print(f"  service workers: {[s.url for s in sws] or 'none'}")
         print(f"  background pages: {[p.url for p in bg_pages] or 'none'}")
         if not sws and not bg_pages:
-            print(f"  ⚠ no extension context detected — is hook.js loaded in this profile?")
+            print(f"  ⚠ no extension service worker seen — but MV3 workers sleep when idle,")
+            print(f"    so this is often a false alarm. The real test is seeing")
+            print(f"    [webauthn-observer] lines in the tab console during registration.")
         else:
             print(f"  ✓ extension loaded")
 
@@ -343,7 +442,24 @@ async def main():
             page = await _pick_page(ctx, args.rp)
             print(f"  attached to tab: {page.url or '(blank)'}")
 
-        captured = _setup_capture(page)
+        _url = page.url or ""
+        if not _url or _url.startswith(("chrome://", "about:", "edge://", "devtools://")):
+            print(f"  ⚠ this tab is a browser page — hook.js does NOT run on chrome:// pages.")
+            print(f"    In THIS Chrome (the one on {args.cdp_url}), navigate to the RP's https")
+            print(f"    site, log in, open passkey settings, and register there — then press Enter.")
+
+        # Capture on every open tab, and on any tab/popup opened later — so a
+        # manually-driven flow that navigates elsewhere (or triggers a popup like
+        # accounts.meta.com) is captured without needing --enroll-url.
+        captured = _new_capture()
+        for p in ctx.pages:
+            _attach_listeners(p, captured)
+
+        def _on_new_page(p: Page) -> None:
+            print(f"  + new tab: {p.url or '(blank)'}")
+            _attach_listeners(p, captured)
+
+        ctx.on("page", _on_new_page)
 
         # Navigate, then hydrate localStorage for that origin
         if args.enroll_url:
@@ -396,10 +512,72 @@ async def main():
         except EOFError:
             print("\n  stdin closed — dumping captures")
 
+        # Capture is done — stop attaching listeners to further tabs so the
+        # throwaway storage-recovery tab (and any teardown churn) stays silent.
+        try:
+            ctx.remove_listener("page", _on_new_page)
+        except Exception:
+            pass
+
+        # Pull the hook's structured event log. Sweep live frames first, then the
+        # cross-origin persisted store (survives the ceremony tab closing). If a
+        # ceremony popup already closed and only a blank tab remains, open a throwaway
+        # https page to get a hook context that can read the persisted store.
+        try:
+            live = await _collect_observer_logs(ctx)
+            persisted = await _load_persisted_logs(ctx)
+            if not live and not persisted:
+                try:
+                    tmp = await ctx.new_page()
+                    await tmp.goto("https://example.com", wait_until="domcontentloaded", timeout=15_000)
+                    await tmp.wait_for_timeout(400)  # let the hook install + read storage
+                    persisted = await _load_persisted_logs(ctx)
+                    await tmp.close()
+                    if persisted:
+                        print("  recovered log from chrome.storage (ceremony tab had closed)")
+                except Exception:
+                    pass
+            captured["observer_log"] = _dedupe_frame_blocks((live or []) + (persisted or [])) or None
+        except Exception as e:
+            print(f"  observer-log collection failed: {e}")
+
         try:
             _dump_capture(captured, artifacts_dir)
         except Exception as e:
             print(f"  capture dump failed: {e}")
+
+        # Auto-record the advertised WebAuthn params into the ledger + status CSV.
+        # Guarded so a parse failure never costs us the raw dumps above.
+        try:
+            params = webauthn_params.extract_advertised(
+                captured.get("observer_log"), captured.get("webauthn")
+            )
+            if params:
+                ledger.record_advertised_params(
+                    args.rp, params, artifact=str(artifacts_dir)
+                )
+                # Re-read so the CSV carries the exact captured_at the ledger stored.
+                led = ledger.load()
+                stored = led.get("entries", {}).get(args.rp, {}).get(
+                    "advertised_params", params
+                )
+                webauthn_params.upsert_status_csv(args.rp, stored)
+                print(
+                    f"  ✓ advertised params recorded → ledger[{args.rp}] "
+                    f"+ {webauthn_params.DEFAULT_STATUS_CSV}"
+                )
+            elif captured.get("observer_log"):
+                print("  observer log had no create.called event — nothing to record")
+                print("  · the hook installed, but no navigator.credentials.create() fired")
+                print("  · re-open the RP's 'add passkey' flow so create() is called, then Enter")
+            else:
+                print("  no observer log — hook.js didn't run on any open tab. Checklist:")
+                print("  · registration must happen in THIS Chrome (port 9222), on an https page")
+                print("  · extension loaded? chrome://extensions → 'Passkeys Pwned' enabled")
+                print("  · during registration you should see [webauthn-observer] lines in")
+                print("    that tab's DevTools console — if not, the hook isn't injected there")
+        except Exception as e:
+            print(f"  advertised-params persist failed: {e}")
 
         # Detach but do NOT close — leave the user's Chrome running.
         try:
