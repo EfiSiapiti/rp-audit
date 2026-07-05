@@ -31,22 +31,29 @@ DEFAULT_STATUS_CSV = Path("data/targets_selected_status.csv")
 # per-run writer (upsert_status_csv) and the bulk resync (sync_selected_status_notes)
 # agree on names and ordering.
 ADV_COLUMNS = [
+    # (1) What the RP advertised in PublicKeyCredentialCreationOptions.
     "adv_rp_id",
     "adv_attestation",
     "adv_uv",
     "adv_resident_key",
     "adv_require_resident_key",
     "adv_authenticator_attachment",
-    "adv_algs",
+    "adv_algs",            # from the client-side options the hook saw
+    "adv_algs_server",     # from the RP's begin-response on the wire (cross-check)
     "adv_attestation_formats",
     "adv_hints",
     "adv_extensions",
     "adv_timeout",
-    # What the hook actually returned (the "given" side) + how the ceremony ended.
+    # (2) The credential that was actually returned (the "selected"/given side).
     "fab_alg",
     "fab_alg_offered",
     "fab_flags",
     "fab_outcome",
+    # (3) What the server said back to the finish/registration request.
+    "srv_endpoint",
+    "srv_status",
+    "srv_result",
+    "srv_message",
     "adv_captured_at",
 ]
 
@@ -103,6 +110,7 @@ def _scan_fabrication(observer_log: Any) -> dict:
     flags = None
     outcome = "called-no-result"  # create.called seen but nothing after
     error = None
+    cred_id = None
     for entry in _iter_entries(observer_log):
         et = entry.get("eventType")
         payload = entry.get("payload") or {}
@@ -112,6 +120,7 @@ def _scan_fabrication(observer_log: Any) -> dict:
             flags = payload.get("flags")
         elif et == "fabrication.success":
             outcome = "fabricated"
+            cred_id = payload.get("credId") or cred_id
         elif et == "create.success":
             outcome = "real-create"
         elif et == "create.failed":
@@ -121,6 +130,8 @@ def _scan_fabrication(observer_log: Any) -> dict:
     out: dict = {"outcome": outcome}
     if error:
         out["error"] = error
+    if cred_id:
+        out["cred_id"] = cred_id
     if alg_sel:
         out["fabrication_alg"] = alg_sel.get("fabricationAlg")
         out["fabrication_cose_alg"] = alg_sel.get("coseAlg")
@@ -128,6 +139,98 @@ def _scan_fabrication(observer_log: Any) -> dict:
     if flags:
         out["fabrication_flags"] = flags
     return out
+
+
+def _as_network(network: Any) -> tuple[list, list]:
+    """Normalize the `network` arg into (requests, responses) lists.
+
+    Accepts run.py's ``{"requests": [...], "responses": [...]}`` dict, or the
+    older flat webauthn list (records tagged kind=request/response).
+    """
+    if isinstance(network, dict):
+        return list(network.get("requests") or []), list(network.get("responses") or [])
+    if isinstance(network, list):
+        reqs, resps = [], []
+        for r in network:
+            if not isinstance(r, dict):
+                continue
+            if r.get("kind") == "request" or "post_data" in r:
+                reqs.append(r)
+            if r.get("kind") == "response" or "body" in r:
+                resps.append(r)
+        return reqs, resps
+    return [], []
+
+
+def _path(url: str) -> str:
+    try:
+        from urllib.parse import urlparse
+        return urlparse(url).path or url
+    except Exception:
+        return url
+
+
+# Substrings that, in a 2xx finish response body, suggest the RP still rejected.
+_ERROR_MARKERS = (
+    "error", "invalid", "failed", "failure", "denied", "reject",
+    "exception", "not allowed", "unsupported", "must be",
+)
+
+
+def _server_verdict(requests: list, responses: list, cred_id: str | None = None) -> dict:
+    """Find the registration *finish* request/response and summarize the verdict.
+
+    Heuristic: the finish request is the POST whose body carries the new
+    credential (matched by credId, else by the attestation field names). Its
+    response is the server's answer. RP acceptance can't always be read from the
+    HTTP status alone (some RPs return 200 with an error body), so we record the
+    status, a body snippet, and a best-effort accepted/rejected guess — the
+    snippet is the ground truth. Never raises.
+    """
+    markers = [m for m in (cred_id, "attestationObject", "attestation_object", '"rawId"',
+                           "authenticatorAttachment") if m]
+    finish = None
+    for r in requests:
+        try:
+            if r.get("method") == "POST" and r.get("post_data") and any(
+                m in r["post_data"] for m in markers
+            ):
+                finish = r  # keep the most recent match
+        except Exception:
+            continue
+    if finish is None:
+        return {}
+
+    url = finish.get("url", "")
+    req_ts = finish.get("ts", "")
+    # The earliest response to that URL at or after the request time.
+    resp = None
+    for x in responses:
+        if x.get("url") == url and (x.get("ts") or "") >= req_ts:
+            resp = x
+            break
+    if resp is None:  # fall back to any response for that URL
+        for x in responses:
+            if x.get("url") == url:
+                resp = x
+
+    status = resp.get("status") if resp else None
+    body = (resp.get("body") if resp else "") or ""
+    snippet = " ".join(body.split())
+    if len(snippet) > 300:
+        snippet = snippet[:300] + "…"
+
+    low = body.lower()
+    if status is None:
+        result = "unknown"
+    elif status >= 400:
+        result = "rejected"
+    elif any(m in low for m in _ERROR_MARKERS):
+        result = "rejected?"
+    else:
+        result = "accepted?"
+
+    return {"endpoint": _path(url), "status": status, "result": result, "message": snippet}
 
 
 def _server_algs_from_network(webauthn_network: Any) -> list | None:
@@ -172,14 +275,18 @@ def _server_algs_from_network(webauthn_network: Any) -> list | None:
     return None
 
 
-def extract_advertised(observer_log: Any, webauthn_network: Any = None) -> dict | None:
-    """Normalize the advertised WebAuthn create options into a flat record.
+def extract_advertised(observer_log: Any, network: Any = None) -> dict | None:
+    """Normalize one ceremony into a flat record with three parts: what the RP
+    advertised, what credential was selected/returned, and the server's verdict.
 
     Returns None if no `create.called` event with public-key options is present.
+    `network` is run.py's {"requests", "responses"} dict (or the older flat list).
     """
     opts = _latest_create_options(observer_log)
     if opts is None:
         return None
+
+    requests, responses = _as_network(network)
 
     record = {
         "rp_id_advertised": opts.get("rpId"),
@@ -199,12 +306,17 @@ def extract_advertised(observer_log: Any, webauthn_network: Any = None) -> dict 
         "user_id_length": opts.get("userIdLength"),
     }
 
-    server_algs = _server_algs_from_network(webauthn_network)
+    # (1b) Advertised algs cross-checked against the RP's begin-response on the wire.
+    server_algs = _server_algs_from_network(responses or network)
     if server_algs is not None:
         record["server_pub_key_algs"] = server_algs
 
-    # The given/outcome side (what we returned, and how the ceremony ended).
-    record["fabrication"] = _scan_fabrication(observer_log)
+    # (2) The credential that was returned (what we selected + how it ended).
+    fab = _scan_fabrication(observer_log)
+    record["fabrication"] = fab
+
+    # (3) The server's verdict on the finish/registration request.
+    record["server"] = _server_verdict(requests, responses, fab.get("cred_id"))
 
     return record
 
@@ -237,7 +349,9 @@ def flatten_adv_columns(params: dict | None) -> dict:
     """
     params = params or {}
     fab = params.get("fabrication") or {}
+    srv = params.get("server") or {}
     return {
+        # (1) advertised
         "adv_rp_id": _cell(params.get("rp_id_advertised")),
         "adv_attestation": _cell(params.get("attestation")),
         "adv_uv": _cell(params.get("user_verification")),
@@ -247,14 +361,23 @@ def flatten_adv_columns(params: dict | None) -> dict:
         "adv_algs": "|".join(
             str(a) for a in _algs_of(params.get("pub_key_cred_params")) if a is not None
         ),
+        "adv_algs_server": "|".join(
+            str(a) for a in (params.get("server_pub_key_algs") or []) if a is not None
+        ),
         "adv_attestation_formats": _join(params.get("attestation_formats")),
         "adv_hints": _join(params.get("hints")),
         "adv_extensions": _join(params.get("extensions")),
         "adv_timeout": _cell(params.get("timeout")),
+        # (2) selected / returned
         "fab_alg": _fab_alg_cell(fab),
         "fab_alg_offered": _cell(fab.get("fabrication_alg_offered")),
         "fab_flags": _flags_cell(fab.get("fabrication_flags")),
         "fab_outcome": _outcome_cell(fab),
+        # (3) server verdict
+        "srv_endpoint": _cell(srv.get("endpoint")),
+        "srv_status": _cell(srv.get("status")),
+        "srv_result": _cell(srv.get("result")),
+        "srv_message": _cell(srv.get("message")),
         "adv_captured_at": _cell(params.get("captured_at")),
     }
 

@@ -550,7 +550,8 @@ async def main():
         # Guarded so a parse failure never costs us the raw dumps above.
         try:
             params = webauthn_params.extract_advertised(
-                captured.get("observer_log"), captured.get("webauthn")
+                captured.get("observer_log"),
+                {"requests": captured.get("requests"), "responses": captured.get("responses")},
             )
             if params:
                 ledger.record_advertised_params(

@@ -313,14 +313,21 @@ The advertised options are then recorded **automatically**, no extra command:
     `adv_attestation_formats`, `adv_hints`, `adv_extensions`, `adv_timeout`, `adv_captured_at`.
     `adv_rp_id` is the id the ceremony actually advertised, which can differ from your target
     label — e.g. `facebook.com` registers under `accounts.meta.com`.
-  - **`fab_*` — what the hook *returned* + outcome:** `fab_alg` (e.g. `RS256(-257)`),
+  - **`fab_*` — the credential that was *selected*/returned:** `fab_alg` (e.g. `RS256(-257)`),
     `fab_alg_offered` (was that alg in the RP's `pubKeyCredParams`? `false` = a downgrade),
     `fab_flags` (the authData bits set, e.g. `UP,UV,BE,AT`), `fab_outcome`
     (`fabricated` = browser returned a credential; `create-failed:<Error>` = the browser
-    rejected it). Note `fab_outcome=fabricated` does **not** mean the RP accepted it —
-    server-side acceptance/rejection is in the run's `network.json` (`/finish` response).
-    So a rejected registration still records the requested params, the given params, and the
-    outcome.
+    rejected it).
+  - **`srv_*` — what the *server* said back:** the registration finish request/response is
+    located on the wire (matched by the returned credId), giving `srv_endpoint`, `srv_status`
+    (HTTP status), `srv_result` (best-effort `accepted?` / `rejected` / `rejected?`), and
+    `srv_message` (a snippet of the response body — the ground truth, since some RPs return
+    HTTP 200 with an error body). This is how you see whether the RP actually *enforced* a
+    control: a rejected finish with the reason is the enforcement signal.
+
+  So one row tells the whole story: **advertised → selected → server verdict**. A rejected
+  registration is still fully recorded. `adv_algs` comes from the client-side options the hook
+  saw; `adv_algs_server` is the same list read from the RP's begin-response on the wire.
 
 The ledger is the source of truth; the CSV is a projection. Re-running
 `python -m src.sync_selected_status_notes` reprojects the same `adv_*` columns from the
@@ -357,20 +364,19 @@ helpers live on `window` in the page's main world):
 // List what's stored (rpId, credId, createdAt, hasPrivateKey):
 await window.__webauthnObserverDumpKeys();
 
-// Delete ALL stored fabricated keys (this is all-or-nothing):
+// Delete ONE RP's stored key (control 3: re-register a revoked key):
+await window.__webauthnObserverDeleteKey("accounts.meta.com");
+
+// Delete ALL stored fabricated keys (all-or-nothing):
 await window.__webauthnObserverClearKeys();
 
 // The persisted event log is stored separately; clear it if it gets noisy:
 await window.__webauthnObserverClearPersistedLog();
 ```
 
-`__webauthnObserverClearKeys` clears the persisted store and the calling tab's in-memory
-cache; reload any other open tabs so their caches reset too. There is currently no built-in
-per-RP delete — to drop a single RP's key you either clear all and re-register the others,
-or edit `chrome.storage.local` directly (extension service worker DevTools →
-Application → Storage). If you need per-RP deletion (e.g. for the "re-register a revoked
-key" control), it's a small addition to `background.js`/`bridge.js`/`hook.js` — ask and it
-can be wired in.
+`__webauthnObserverDeleteKey(rpId)` removes just that RP's key from storage and the calling
+tab's cache; `__webauthnObserverClearKeys()` wipes them all. Reload any other open tabs so
+their in-memory caches reset too.
 
 ## Quick Start: Single-Site Test
 

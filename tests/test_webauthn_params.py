@@ -112,6 +112,47 @@ class TestExtractAdvertised(unittest.TestCase):
         rec = webauthn_params.extract_advertised([_create_called(SAMPLE_OPTIONS)], network)
         self.assertEqual(rec["server_pub_key_algs"], [-8])
 
+    def test_server_verdict_from_finish(self):
+        # A finish POST carrying the credId, and its error response.
+        observer_log = [
+            _create_called(SAMPLE_OPTIONS),
+            {"eventType": "fabrication.success", "payload": {"credId": "ABC123cred"}},
+        ]
+        network = {
+            "requests": [
+                {"method": "POST", "url": "https://rp.example/api/graphql/",
+                 "post_data": 'variables={"rawId":"ABC123cred","attestationObject":"..."}',
+                 "ts": "20260705T100000Z"},
+            ],
+            "responses": [
+                {"url": "https://rp.example/api/graphql/", "status": 200,
+                 "body": '{"errors":[{"message":"Invalid attestation: AAGUID mismatch"}]}',
+                 "ts": "20260705T100001Z"},
+            ],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        srv = rec["server"]
+        self.assertEqual(srv["endpoint"], "/api/graphql/")
+        self.assertEqual(srv["status"], 200)
+        self.assertEqual(srv["result"], "rejected?")  # 200 but error body
+        self.assertIn("AAGUID mismatch", srv["message"])
+        cells = webauthn_params.flatten_adv_columns(rec)
+        self.assertEqual(cells["srv_status"], "200")
+        self.assertEqual(cells["srv_result"], "rejected?")
+        self.assertIn("AAGUID mismatch", cells["srv_message"])
+
+    def test_server_verdict_accepted(self):
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": "XYZ"}}]
+        network = {
+            "requests": [{"method": "POST", "url": "https://rp/finish",
+                          "post_data": '{"rawId":"XYZ"}', "ts": "20260705T100000Z"}],
+            "responses": [{"url": "https://rp/finish", "status": 200,
+                           "body": '{"status":"ok","verified":true}', "ts": "20260705T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted?")
+
 
 class TestFlatten(unittest.TestCase):
     def test_flatten_cells(self):
