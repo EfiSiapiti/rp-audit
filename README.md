@@ -310,9 +310,11 @@ The advertised options are then recorded **automatically**, no extra command:
   every other row untouched (`src/lib/webauthn_params.py`). Two groups of columns:
   - **`adv_*` — what the RP *requested*:** `adv_rp_id`, `adv_attestation`, `adv_uv`,
     `adv_resident_key`, `adv_require_resident_key`, `adv_authenticator_attachment`, `adv_algs`,
-    `adv_attestation_formats`, `adv_hints`, `adv_extensions`, `adv_timeout`, `adv_captured_at`.
+    `adv_attestation_formats`, `adv_timeout`, `adv_captured_at`.
     `adv_rp_id` is the id the ceremony actually advertised, which can differ from your target
-    label — e.g. `facebook.com` registers under `accounts.meta.com`.
+    label — e.g. `facebook.com` registers under `accounts.meta.com`. (The requested `hints`,
+    `extensions`, and the wire-side algorithm cross-check are still stored in the ledger's
+    `advertised_params`, just not projected as columns.)
   - **`fab_*` — the credential that was *selected*/returned:** `fab_alg` (e.g. `RS256(-257)`),
     `fab_alg_offered` (was that alg in the RP's `pubKeyCredParams`? `false` = a downgrade),
     `fab_flags` (the authData bits set, e.g. `UP,UV,BE,AT`), `fab_outcome`
@@ -326,8 +328,7 @@ The advertised options are then recorded **automatically**, no extra command:
     control: a rejected finish with the reason is the enforcement signal.
 
   So one row tells the whole story: **advertised → selected → server verdict**. A rejected
-  registration is still fully recorded. `adv_algs` comes from the client-side options the hook
-  saw; `adv_algs_server` is the same list read from the RP's begin-response on the wire.
+  registration is still fully recorded.
 
 The ledger is the source of truth; the CSV is a projection. Re-running
 `python -m src.sync_selected_status_notes` reprojects the same `adv_*` columns from the
