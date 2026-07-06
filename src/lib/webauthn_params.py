@@ -27,11 +27,10 @@ from src.lib.parse import _sniff_delimiter
 
 DEFAULT_STATUS_CSV = Path("data/targets_selected_status.csv")
 
-# Flat spreadsheet columns, in display order. Kept as a module constant so the
-# per-run writer (upsert_status_csv) and the bulk resync (sync_selected_status_notes)
-# agree on names and ordering.
+# Advertised-only columns for the per-RP status sheet (targets_selected_status.csv).
+# One row per RP: what the RP requested. Kept as a module constant so the per-run
+# writer (upsert_status_csv) and the bulk resync (sync_selected_status_notes) agree.
 ADV_COLUMNS = [
-    # (1) What the RP advertised in PublicKeyCredentialCreationOptions.
     "adv_rp_id",
     "adv_attestation",
     "adv_uv",
@@ -41,17 +40,29 @@ ADV_COLUMNS = [
     "adv_algs",            # from the client-side options the hook saw
     "adv_attestation_formats",
     "adv_timeout",
-    # (2) The credential that was actually returned (the "selected"/given side).
+    "adv_captured_at",
+]
+
+DEFAULT_EXPERIMENTS_CSV = Path("data/experiments.csv")
+
+# Append-only experiment log (data/experiments.csv): one row per hook run. The
+# per-run results — what the hook returned (fab_*) and what the server said back
+# (srv_*) — plus a --label naming the control under test. This is where multiple
+# control experiments on the same RP are compared, without overwriting.
+EXPERIMENT_COLUMNS = [
+    "captured_at",
+    "rp_id",              # target label the run was invoked with
+    "label",             # --label: the control/config under test
+    "adv_rp_id",         # RP id the ceremony actually advertised
     "fab_alg",
     "fab_alg_offered",
     "fab_flags",
     "fab_outcome",
-    # (3) What the server said back to the finish/registration request.
     "srv_endpoint",
     "srv_status",
     "srv_result",
     "srv_message",
-    "adv_captured_at",
+    "artifact",
 ]
 
 
@@ -378,17 +389,15 @@ def _join(values: Any) -> str:
 
 
 def flatten_adv_columns(params: dict | None) -> dict:
-    """Map a normalized advertised-params record to flat `adv_*` string cells.
+    """Map a normalized record to the advertised-only `adv_*` cells (status sheet).
 
-    Nested values are compacted so each lands cleanly in one spreadsheet cell:
-    algs as ``-7|-257``; lists as comma-joined. Every ADV_COLUMNS key is always
-    present (blank when unknown) so the CSV header stays stable.
+    Nested values are compacted so each lands cleanly in one spreadsheet cell.
+    Every ADV_COLUMNS key is always present (blank when unknown) so the header
+    stays stable. The fab_*/srv_* results live in the experiment log instead
+    (see flatten_experiment_columns).
     """
     params = params or {}
-    fab = params.get("fabrication") or {}
-    srv = params.get("server") or {}
     return {
-        # (1) advertised
         "adv_rp_id": _cell(params.get("rp_id_advertised")),
         "adv_attestation": _cell(params.get("attestation")),
         "adv_uv": _cell(params.get("user_verification")),
@@ -400,18 +409,55 @@ def flatten_adv_columns(params: dict | None) -> dict:
         ),
         "adv_attestation_formats": _join(params.get("attestation_formats")),
         "adv_timeout": _cell(params.get("timeout")),
-        # (2) selected / returned
+        "adv_captured_at": _cell(params.get("captured_at")),
+    }
+
+
+def flatten_experiment_columns(params: dict | None, *, rp_id: str, label: str = "",
+                               artifact: str = "") -> dict:
+    """One experiment-log row: the per-run fab_*/srv_* results + identity + label.
+
+    `params` is the extracted (or ledger-stored) record; `rp_id` is the target
+    label the run was invoked with, `label` the --label control name, `artifact`
+    the run's artifact dir. Every EXPERIMENT_COLUMNS key is always present.
+    """
+    params = params or {}
+    fab = params.get("fabrication") or {}
+    srv = params.get("server") or {}
+    return {
+        "captured_at": _cell(params.get("captured_at")),
+        "rp_id": _cell(rp_id),
+        "label": _cell(label),
+        "adv_rp_id": _cell(params.get("rp_id_advertised")),
         "fab_alg": _fab_alg_cell(fab),
         "fab_alg_offered": _cell(fab.get("fabrication_alg_offered")),
         "fab_flags": _flags_cell(fab.get("fabrication_flags")),
         "fab_outcome": _outcome_cell(fab),
-        # (3) server verdict
         "srv_endpoint": _cell(srv.get("endpoint")),
         "srv_status": _cell(srv.get("status")),
         "srv_result": _cell(srv.get("result")),
         "srv_message": _cell(srv.get("message")),
-        "adv_captured_at": _cell(params.get("captured_at")),
+        "artifact": _cell(artifact),
     }
+
+
+def append_experiment(row: dict, *, path: Path | str = DEFAULT_EXPERIMENTS_CSV) -> None:
+    """Append one experiment row to the log, writing the header if the file is new.
+
+    Semicolon-delimited to match the status sheet's Excel locale. Append-only, so
+    every control run on an RP is preserved for comparison (never overwritten).
+    """
+    path = Path(path)
+    is_new = not path.exists()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f, fieldnames=EXPERIMENT_COLUMNS, delimiter=";",
+            restval="", extrasaction="ignore",
+        )
+        if is_new:
+            writer.writeheader()
+        writer.writerow(row)
 
 
 def _fab_alg_cell(fab: dict) -> str:

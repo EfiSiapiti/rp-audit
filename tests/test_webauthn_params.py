@@ -93,7 +93,9 @@ class TestExtractAdvertised(unittest.TestCase):
         self.assertEqual(fab["outcome"], "fabricated")
         self.assertEqual(fab["fabrication_alg"], "RS256")
         self.assertEqual(fab["fabrication_alg_offered"], False)
-        cells = webauthn_params.flatten_adv_columns(rec)
+        cells = webauthn_params.flatten_experiment_columns(rec, rp_id="example.com", label="alg-downgrade")
+        self.assertEqual(cells["label"], "alg-downgrade")
+        self.assertEqual(cells["rp_id"], "example.com")
         self.assertEqual(cells["fab_alg"], "RS256(-257)")
         self.assertEqual(cells["fab_alg_offered"], "false")   # downgrade: not in offered set
         self.assertEqual(cells["fab_flags"], "UP,UV,BE,AT")
@@ -105,7 +107,8 @@ class TestExtractAdvertised(unittest.TestCase):
             {"eventType": "create.failed", "payload": {"error": {"name": "NotAllowedError"}}},
         ]
         rec = webauthn_params.extract_advertised(observer_log)
-        self.assertEqual(webauthn_params.flatten_adv_columns(rec)["fab_outcome"], "create-failed:NotAllowedError")
+        cells = webauthn_params.flatten_experiment_columns(rec, rp_id="example.com")
+        self.assertEqual(cells["fab_outcome"], "create-failed:NotAllowedError")
 
     def test_server_algs_crosscheck(self):
         network = [{"kind": "response", "body": '{"publicKey":{"pubKeyCredParams":[{"type":"public-key","alg":-8}]}}'}]
@@ -136,7 +139,7 @@ class TestExtractAdvertised(unittest.TestCase):
         self.assertEqual(srv["status"], 200)
         self.assertEqual(srv["result"], "rejected?")  # 200 but error body
         self.assertIn("AAGUID mismatch", srv["message"])
-        cells = webauthn_params.flatten_adv_columns(rec)
+        cells = webauthn_params.flatten_experiment_columns(rec, rp_id="example.com")
         self.assertEqual(cells["srv_status"], "200")
         self.assertEqual(cells["srv_result"], "rejected?")
         self.assertIn("AAGUID mismatch", cells["srv_message"])
@@ -194,6 +197,9 @@ class TestFlatten(unittest.TestCase):
         self.assertNotIn("adv_extensions", cells)
         self.assertNotIn("adv_hints", cells)
         self.assertNotIn("adv_algs_server", cells)
+        # fab_*/srv_* now belong to the experiment log, not the advertised sheet.
+        self.assertNotIn("fab_alg", cells)
+        self.assertNotIn("srv_result", cells)
         self.assertEqual(cells["adv_captured_at"], "2026-07-05T10:00:00+00:00")
         # Every declared column is present even for a None record.
         self.assertEqual(set(webauthn_params.flatten_adv_columns(None)), set(webauthn_params.ADV_COLUMNS))
@@ -241,6 +247,39 @@ class TestUpsertStatusCsv(unittest.TestCase):
             n = next(r for r in rows if r["etld1"] == "newsite.com")
             self.assertEqual(n["adv_attestation"], "direct")
             self.assertEqual(n["canonical_origin"], "")  # blank, not crashed
+
+
+class TestAppendExperiment(unittest.TestCase):
+    def _rec(self, credid="XYZ"):
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": credid}}]
+        network = {
+            "requests": [{"method": "POST", "url": "https://rp/finish",
+                          "post_data": '{"rawId":"%s"}' % credid, "ts": "20260705T100000Z"}],
+            "responses": [{"url": "https://rp/finish", "status": 200,
+                           "body": '{"verified":true}', "ts": "20260705T100000Z"}],
+        }
+        return webauthn_params.extract_advertised(observer_log, network)
+
+    def test_header_written_once_then_appends(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "experiments.csv"
+            rec = self._rec()
+            r1 = webauthn_params.flatten_experiment_columns(rec, rp_id="rp.com", label="ctrl-a", artifact="art/1")
+            r2 = webauthn_params.flatten_experiment_columns(rec, rp_id="rp.com", label="ctrl-b", artifact="art/2")
+            webauthn_params.append_experiment(r1, path=path)
+            webauthn_params.append_experiment(r2, path=path)
+
+            with open(path, encoding="utf-8", newline="") as f:
+                rows = list(csv.DictReader(f, delimiter=";"))
+            # Two data rows appended (not overwritten), single header.
+            self.assertEqual(len(rows), 2)
+            self.assertEqual([r["label"] for r in rows], ["ctrl-a", "ctrl-b"])
+            self.assertEqual(rows[0]["rp_id"], "rp.com")
+            self.assertEqual(rows[0]["srv_result"], "accepted")
+            self.assertEqual(rows[0]["artifact"], "art/1")
+            # Header line appears exactly once.
+            self.assertEqual(path.read_text(encoding="utf-8").count("captured_at;rp_id;label"), 1)
 
 
 if __name__ == "__main__":

@@ -302,33 +302,43 @@ left it briefly opens `https://example.com` to get a hook context that can read 
 longer have to keep the exact ceremony tab open — but reload the extension after updating
 `hook.js`/`background.js` for this to take effect.
 
-The advertised options are then recorded **automatically**, no extra command:
+Each run records to **two outputs**, automatically, no extra command:
 
+**(a) The advertised characterization — one row per RP** (captured once):
 - into the ledger, under `entries[<rp>]["advertised_params"]` (state-neutral — the RP's
   `state` is not changed), via `ledger.record_advertised_params`;
-- into `data/targets_selected_status.csv`, upserting the row keyed by `etld1` and leaving
-  every other row untouched (`src/lib/webauthn_params.py`). Two groups of columns:
-  - **`adv_*` — what the RP *requested*:** `adv_rp_id`, `adv_attestation`, `adv_uv`,
-    `adv_resident_key`, `adv_require_resident_key`, `adv_authenticator_attachment`, `adv_algs`,
-    `adv_attestation_formats`, `adv_timeout`, `adv_captured_at`.
-    `adv_rp_id` is the id the ceremony actually advertised, which can differ from your target
-    label — e.g. `facebook.com` registers under `accounts.meta.com`. (The requested `hints`,
-    `extensions`, and the wire-side algorithm cross-check are still stored in the ledger's
-    `advertised_params`, just not projected as columns.)
-  - **`fab_*` — the credential that was *selected*/returned:** `fab_alg` (e.g. `RS256(-257)`),
-    `fab_alg_offered` (was that alg in the RP's `pubKeyCredParams`? `false` = a downgrade),
-    `fab_flags` (the authData bits set, e.g. `UP,UV,BE,AT`), `fab_outcome`
-    (`fabricated` = browser returned a credential; `create-failed:<Error>` = the browser
-    rejected it).
-  - **`srv_*` — what the *server* said back:** the registration finish request/response is
-    located on the wire (matched by the returned credId), giving `srv_endpoint`, `srv_status`
-    (HTTP status), `srv_result` (best-effort `accepted?` / `rejected` / `rejected?`), and
-    `srv_message` (a snippet of the response body — the ground truth, since some RPs return
-    HTTP 200 with an error body). This is how you see whether the RP actually *enforced* a
-    control: a rejected finish with the reason is the enforcement signal.
+- into `data/targets_selected_status.csv`, upserting the row keyed by `etld1` (other rows
+  untouched). Columns are **`adv_*` only** — what the RP *requested*: `adv_rp_id`,
+  `adv_attestation`, `adv_uv`, `adv_resident_key`, `adv_require_resident_key`,
+  `adv_authenticator_attachment`, `adv_algs`, `adv_attestation_formats`, `adv_timeout`,
+  `adv_captured_at`. `adv_rp_id` is the id the ceremony actually advertised, which can differ
+  from your target label — e.g. `facebook.com` registers under `accounts.meta.com`. (Requested
+  `hints`, `extensions`, and the wire-side alg cross-check are still in the ledger, just not
+  projected.)
 
-  So one row tells the whole story: **advertised → selected → server verdict**. A rejected
-  registration is still fully recorded.
+**(b) The per-run result — one appended row per run** in `data/experiments.csv` (append-only,
+`;`-delimited). This is where you run and compare **control experiments** on the same RP without
+overwriting. Pass **`--label <control>`** to name the run (one `hook.js` branch per control):
+
+```powershell
+python -m src.hook.run --rp facebook.com --no-restore --label alg-downgrade-RS256
+```
+
+Columns: `captured_at, rp_id, label, adv_rp_id`, then
+- **`fab_*` — the credential that was *selected*/returned:** `fab_alg` (e.g. `RS256(-257)`),
+  `fab_alg_offered` (was that alg in the RP's `pubKeyCredParams`? `false` = a downgrade),
+  `fab_flags` (authData bits, e.g. `UP,UV,BE,AT`), `fab_outcome` (`fabricated` = browser
+  returned a credential; `create-failed:<Error>` = the browser rejected it);
+- **`srv_*` — what the *server* said back:** the finish request/response located on the wire
+  (matched by the returned credId), giving `srv_endpoint`, `srv_status`, `srv_result`
+  (`accepted` / `accepted?` / `rejected` / `rejected?`), and `srv_message` (a body snippet — the
+  ground truth, since some RPs return HTTP 200 with an error body, and Meta's XSSI prefix is
+  stripped);
+- `artifact` — the run's artifact dir.
+
+Each experiment row tells the whole story: **advertised (via `adv_rp_id`) → selected → server
+verdict**, and a rejected registration is fully recorded. The enforcement signal is `srv_result`
++ `srv_message`.
 
 The ledger is the source of truth; the CSV is a projection. Re-running
 `python -m src.sync_selected_status_notes` reprojects the same `adv_*` columns from the

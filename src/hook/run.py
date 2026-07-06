@@ -374,6 +374,9 @@ async def _pick_page(ctx, prefer_url_contains: str | None) -> Page:
 async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rp", required=True, help="rp_id label for artifact paths, e.g. notion.so")
+    ap.add_argument("--label", default="",
+                    help="control/config name for this run, logged in data/experiments.csv "
+                         "(e.g. alg-downgrade-RS256, attestation-zero-aaguid)")
     ap.add_argument("--enroll-url", help="navigate the chosen tab to this URL before capturing")
     ap.add_argument("--cdp-url", default=DEFAULT_CDP_URL,
                     help=f"Chrome DevTools Protocol URL (default: {DEFAULT_CDP_URL})")
@@ -566,6 +569,16 @@ async def main():
                 print(
                     f"  ✓ advertised params recorded → ledger[{args.rp}] "
                     f"+ {webauthn_params.DEFAULT_STATUS_CSV}"
+                )
+                # Append this run's fab/srv result to the experiment log — one
+                # row per run, labelled by --label, never overwritten.
+                exp_row = webauthn_params.flatten_experiment_columns(
+                    stored, rp_id=args.rp, label=args.label, artifact=str(artifacts_dir)
+                )
+                webauthn_params.append_experiment(exp_row)
+                print(
+                    f"  ✓ experiment logged → {webauthn_params.DEFAULT_EXPERIMENTS_CSV} "
+                    f"(label={args.label or '-'}, result={exp_row['srv_result'] or exp_row['fab_outcome'] or '-'})"
                 )
             elif captured.get("observer_log"):
                 print("  observer log had no create.called event — nothing to record")
