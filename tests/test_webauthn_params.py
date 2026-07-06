@@ -151,7 +151,32 @@ class TestExtractAdvertised(unittest.TestCase):
                            "body": '{"status":"ok","verified":true}', "ts": "20260705T100000Z"}],
         }
         rec = webauthn_params.extract_advertised(observer_log, network)
-        self.assertEqual(rec["server"]["result"], "accepted?")
+        self.assertEqual(rec["server"]["result"], "accepted")  # verified:true → confident accept
+
+    def test_server_verdict_meta_style(self):
+        # Meta: credential_id + base64 payload, XSSI prefix, success:true, all same URL.
+        observer_log = [
+            _create_called(SAMPLE_OPTIONS),
+            {"eventType": "fabrication.success", "payload": {"credId": "EUOi6ty1cred"}},
+        ]
+        url = "https://accountscenter.facebook.com/api/graphql/"
+        network = {
+            "requests": [
+                {"method": "POST", "url": url, "post_data": "fb_api_req_friendly_name=OtherMutation&variables={}", "ts": "20260705T100000Z"},
+                {"method": "POST", "url": url,
+                 "post_data": 'fb_api_req_friendly_name=useCreatePasskeyMutation&variables={"credential_id":"EUOi6ty1cred","payload":"eyJ..."}',
+                 "ts": "20260705T100001Z"},
+            ],
+            "responses": [
+                {"url": url, "status": 200, "body": '{"data":{"other":1}}', "ts": "20260705T100000Z"},
+                {"url": url, "status": 200, "body": 'for (;;);{"data":{"xfb_fx_settings_create_passkey":{"success":true}}}', "ts": "20260705T100001Z"},
+            ],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        srv = rec["server"]
+        self.assertIn("useCreatePasskeyMutation", srv["endpoint"])   # friendly name surfaced
+        self.assertEqual(srv["result"], "accepted")                 # success:true past the XSSI prefix
+        self.assertNotIn("for (;;);", srv["message"])               # prefix stripped
 
 
 class TestFlatten(unittest.TestCase):
@@ -164,8 +189,11 @@ class TestFlatten(unittest.TestCase):
         self.assertEqual(cells["adv_attestation"], "direct")
         self.assertEqual(cells["adv_uv"], "required")
         self.assertEqual(cells["adv_require_resident_key"], "true")
-        self.assertEqual(cells["adv_extensions"], "credProps,prf")
         self.assertEqual(cells["adv_attestation_formats"], "packed,tpm")
+        # Removed columns must not reappear in the projection.
+        self.assertNotIn("adv_extensions", cells)
+        self.assertNotIn("adv_hints", cells)
+        self.assertNotIn("adv_algs_server", cells)
         self.assertEqual(cells["adv_captured_at"], "2026-07-05T10:00:00+00:00")
         # Every declared column is present even for a None record.
         self.assertEqual(set(webauthn_params.flatten_adv_columns(None)), set(webauthn_params.ADV_COLUMNS))

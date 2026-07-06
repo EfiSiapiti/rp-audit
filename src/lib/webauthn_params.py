@@ -39,10 +39,7 @@ ADV_COLUMNS = [
     "adv_require_resident_key",
     "adv_authenticator_attachment",
     "adv_algs",            # from the client-side options the hook saw
-    "adv_algs_server",     # from the RP's begin-response on the wire (cross-check)
     "adv_attestation_formats",
-    "adv_hints",
-    "adv_extensions",
     "adv_timeout",
     # (2) The credential that was actually returned (the "selected"/given side).
     "fab_alg",
@@ -111,6 +108,7 @@ def _scan_fabrication(observer_log: Any) -> dict:
     outcome = "called-no-result"  # create.called seen but nothing after
     error = None
     cred_id = None
+    cred_ids: list = []
     for entry in _iter_entries(observer_log):
         et = entry.get("eventType")
         payload = entry.get("payload") or {}
@@ -120,7 +118,11 @@ def _scan_fabrication(observer_log: Any) -> dict:
             flags = payload.get("flags")
         elif et == "fabrication.success":
             outcome = "fabricated"
-            cred_id = payload.get("credId") or cred_id
+            cid = payload.get("credId")
+            if cid:
+                cred_id = cid
+                if cid not in cred_ids:
+                    cred_ids.append(cid)
         elif et == "create.success":
             outcome = "real-create"
         elif et == "create.failed":
@@ -132,6 +134,8 @@ def _scan_fabrication(observer_log: Any) -> dict:
         out["error"] = error
     if cred_id:
         out["cred_id"] = cred_id
+    if cred_ids:
+        out["cred_ids"] = cred_ids
     if alg_sel:
         out["fabrication_alg"] = alg_sel.get("fabricationAlg")
         out["fabrication_cose_alg"] = alg_sel.get("coseAlg")
@@ -177,60 +181,91 @@ _ERROR_MARKERS = (
 )
 
 
-def _server_verdict(requests: list, responses: list, cred_id: str | None = None) -> dict:
-    """Find the registration *finish* request/response and summarize the verdict.
-
-    Heuristic: the finish request is the POST whose body carries the new
-    credential (matched by credId, else by the attestation field names). Its
-    response is the server's answer. RP acceptance can't always be read from the
-    HTTP status alone (some RPs return 200 with an error body), so we record the
-    status, a body snippet, and a best-effort accepted/rejected guess — the
-    snippet is the ground truth. Never raises.
-    """
-    markers = [m for m in (cred_id, "attestationObject", "attestation_object", '"rawId"',
-                           "authenticatorAttachment") if m]
-    finish = None
+def _find_last_post(requests: list, markers: list) -> dict | None:
+    """Last POST whose body contains any of `markers`."""
+    found = None
     for r in requests:
         try:
             if r.get("method") == "POST" and r.get("post_data") and any(
-                m in r["post_data"] for m in markers
+                m and m in r["post_data"] for m in markers
             ):
-                finish = r  # keep the most recent match
+                found = r
         except Exception:
             continue
+    return found
+
+
+def _friendly_name(req: dict) -> str | None:
+    """Meta tags GraphQL POSTs with fb_api_req_friendly_name — surface it so the
+    endpoint cell is meaningful when every call goes to /api/graphql/."""
+    pd = req.get("post_data") or ""
+    marker = "fb_api_req_friendly_name="
+    i = pd.find(marker)
+    if i == -1:
+        return None
+    return pd[i + len(marker):].split("&", 1)[0][:60] or None
+
+
+def _server_verdict(requests: list, responses: list, cred_ids: list | None = None) -> dict:
+    """Find the registration *finish* request/response and summarize the verdict.
+
+    The finish request is the POST whose body carries the new credential. RPs
+    echo the credential id back, so we match on any fabricated credId first
+    (works even when the attestation is base64-wrapped, as Meta does under
+    `credential_id`/`payload`), then fall back to standard field names. The
+    response is paired by position among same-URL calls (robust for the many
+    same-second GraphQL POSTs). Acceptance can't be read from HTTP status alone
+    (some RPs return 200 with an error body), so we record status, a body
+    snippet (ground truth), and a best-effort guess. Never raises.
+    """
+    cred_ids = [c for c in (cred_ids or []) if c]
+    # Prefer a credId match (strong evidence); fall back to field-name markers.
+    finish = _find_last_post(requests, cred_ids) or _find_last_post(
+        requests, ["credential_id", "attestationObject", "attestation_object",
+                   '"rawId"', "authenticatorAttachment"]
+    )
     if finish is None:
         return {}
 
     url = finish.get("url", "")
-    req_ts = finish.get("ts", "")
-    # The earliest response to that URL at or after the request time.
-    resp = None
-    for x in responses:
-        if x.get("url") == url and (x.get("ts") or "") >= req_ts:
-            resp = x
-            break
-    if resp is None:  # fall back to any response for that URL
-        for x in responses:
-            if x.get("url") == url:
-                resp = x
+    # Pair by position: the k-th POST to this URL → the k-th response to it.
+    reqs_u = [r for r in requests if r.get("url") == url]
+    resps_u = [x for x in responses if x.get("url") == url]
+    try:
+        pos = reqs_u.index(finish)
+    except ValueError:
+        pos = len(reqs_u) - 1
+    resp = resps_u[pos] if 0 <= pos < len(resps_u) else (resps_u[-1] if resps_u else None)
 
     status = resp.get("status") if resp else None
     body = (resp.get("body") if resp else "") or ""
-    snippet = " ".join(body.split())
-    if len(snippet) > 300:
-        snippet = snippet[:300] + "…"
+    # Strip Facebook/Meta's XSSI anti-hijacking prefix before inspecting.
+    clean = body
+    for prefix in ("for (;;);", "while(1);", ")]}'"):
+        if clean.startswith(prefix):
+            clean = clean[len(prefix):]
+            break
+    snippet = " ".join(clean.split())
+    if len(snippet) > 400:
+        snippet = snippet[:400] + "…"
 
-    low = body.lower()
+    low = clean.lower()
+    norm = "".join(low.split())  # whitespace-insensitive for "success": true
+    accepted = '"success":true' in norm or '"verified":true' in norm or '"ok":true' in norm
     if status is None:
         result = "unknown"
     elif status >= 400:
         result = "rejected"
-    elif any(m in low for m in _ERROR_MARKERS):
+    elif '"errors"' in low or any(m in low for m in _ERROR_MARKERS):
         result = "rejected?"
+    elif accepted:
+        result = "accepted"
     else:
         result = "accepted?"
 
-    return {"endpoint": _path(url), "status": status, "result": result, "message": snippet}
+    fn = _friendly_name(finish)
+    endpoint = _path(url) + (f" ({fn})" if fn else "")
+    return {"endpoint": endpoint, "status": status, "result": result, "message": snippet}
 
 
 def _server_algs_from_network(webauthn_network: Any) -> list | None:
@@ -316,7 +351,9 @@ def extract_advertised(observer_log: Any, network: Any = None) -> dict | None:
     record["fabrication"] = fab
 
     # (3) The server's verdict on the finish/registration request.
-    record["server"] = _server_verdict(requests, responses, fab.get("cred_id"))
+    record["server"] = _server_verdict(
+        requests, responses, fab.get("cred_ids") or [fab.get("cred_id")]
+    )
 
     return record
 
@@ -361,12 +398,7 @@ def flatten_adv_columns(params: dict | None) -> dict:
         "adv_algs": "|".join(
             str(a) for a in _algs_of(params.get("pub_key_cred_params")) if a is not None
         ),
-        "adv_algs_server": "|".join(
-            str(a) for a in (params.get("server_pub_key_algs") or []) if a is not None
-        ),
         "adv_attestation_formats": _join(params.get("attestation_formats")),
-        "adv_hints": _join(params.get("hints")),
-        "adv_extensions": _join(params.get("extensions")),
         "adv_timeout": _cell(params.get("timeout")),
         # (2) selected / returned
         "fab_alg": _fab_alg_cell(fab),
