@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import csv
 import json
+import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -45,19 +47,32 @@ ADV_COLUMNS = [
 
 DEFAULT_EXPERIMENTS_CSV = Path("data/experiments.csv")
 
-# Append-only experiment log (data/experiments.csv): one row per hook run. The
-# per-run results — what the hook returned (fab_*) and what the server said back
-# (srv_*) — plus a --label naming the control under test. This is where multiple
-# control experiments on the same RP are compared, without overwriting.
+# Append-only experiment log (data/experiments.csv): one self-contained row per
+# hook run — the advertised context (adv_*), what the hook returned (fab_*), and
+# what the server said back (srv_*), plus a --label naming the control under test.
+# Advertised is snapshotted per run too, so a change in what the RP advertises
+# (control 2) is visible across rows. This is where control experiments on the
+# same RP are compared, without overwriting.
 EXPERIMENT_COLUMNS = [
     "captured_at",
     "rp_id",              # target label the run was invoked with
     "label",             # --label: the control/config under test
-    "adv_rp_id",         # RP id the ceremony actually advertised
+    # advertised context (what the RP requested this run)
+    "adv_rp_id",
+    "adv_attestation",
+    "adv_uv",
+    "adv_resident_key",
+    "adv_require_resident_key",
+    "adv_authenticator_attachment",
+    "adv_algs",
+    "adv_attestation_formats",
+    "adv_timeout",
+    # selected / returned
     "fab_alg",
     "fab_alg_offered",
     "fab_flags",
     "fab_outcome",
+    # server verdict
     "srv_endpoint",
     "srv_status",
     "srv_result",
@@ -96,15 +111,64 @@ def _iter_entries(observer_log: Any) -> Iterable[dict]:
         return
 
 
+def _parse_ts(ts: Any) -> datetime | None:
+    """Parse a hook ISO timestamp (`…Z`/`…+00:00`) or run.py compact `%Y%m%dT%H%M%SZ`."""
+    if not isinstance(ts, str) or not ts:
+        return None
+    t = ts.strip()
+    try:
+        return datetime.fromisoformat(t.replace("Z", "+00:00"))
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(t, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def _filter_since(observer_log: Any, since: datetime) -> list:
+    """Keep only observer entries at/after `since`.
+
+    The hook's event log is persisted to chrome.storage and accumulates across
+    runs/origins, so a fresh capture can carry stale ceremonies from earlier RPs.
+    Scoping to the current run's start time isolates this run's ceremony. Entries
+    without a parseable ts are kept (all real hook entries have one).
+    """
+    def keep(entry: dict) -> bool:
+        p = _parse_ts(entry.get("ts"))
+        return p is None or p >= since
+
+    out: list = []
+    for block in observer_log or []:
+        if not isinstance(block, dict):
+            continue
+        if isinstance(block.get("entries"), list):
+            kept = [e for e in block["entries"] if isinstance(e, dict) and keep(e)]
+            if kept:
+                out.append({**block, "entries": kept})
+        elif "eventType" in block and keep(block):
+            out.append(block)
+    return out
+
+
 def _latest_create_options(observer_log: Any) -> dict | None:
-    """Return the `options` summary from the most recent `create.called` event."""
-    options = None
+    """Return the `options` summary from the chronologically-latest `create.called`.
+
+    Picks by timestamp (not list order) so an accumulated cross-run log still
+    yields *this* run's ceremony — the most recent one.
+    """
+    candidates = []
     for entry in _iter_entries(observer_log):
         if entry.get("eventType") == "create.called":
             opts = (entry.get("payload") or {}).get("options")
             if isinstance(opts, dict) and opts.get("hasPublicKey"):
-                options = opts
-    return options
+                candidates.append((_parse_ts(entry.get("ts")), opts))
+    if not candidates:
+        return None
+    dated = [c for c in candidates if c[0] is not None]
+    if dated:
+        return max(dated, key=lambda c: c[0])[1]
+    return candidates[-1][1]
 
 
 def _scan_fabrication(observer_log: Any) -> dict:
@@ -185,18 +249,50 @@ def _path(url: str) -> str:
         return url
 
 
-# Substrings that, in a 2xx finish response body, suggest the RP still rejected.
+# Structured negative markers (whitespace-stripped, lowercased) that indicate a
+# real rejection — as opposed to negated fields like "error":false / "errors":[]
+# that a naive "error" substring match would wrongly flag.
 _ERROR_MARKERS = (
-    "error", "invalid", "failed", "failure", "denied", "reject",
-    "exception", "not allowed", "unsupported", "must be",
+    '"error":true', '"errors":[{', '"errors":["', '"success":false',
+    '"ok":false', '"status":"error"', '"status":"fail', '"result":"error"',
+    '"verified":false',
+)
+
+# Strong plain-text error phrases (for non-JSON / HTML rejection bodies). Chosen
+# to be unlikely to appear in a negated/positive context.
+_ERROR_PHRASES = (
+    "could not be verified", "verification failed", "invalid attestation",
+    "attestation failed", "registration failed", "not permitted", "access denied",
+)
+
+
+# Endpoints that are NOT the WebAuthn finish even if their body carries the
+# credential — error reporters (Sentry etc.) and analytics/telemetry echo the
+# credential in their payloads and would otherwise be mistaken for the finish.
+_NON_FINISH_URL = re.compile(
+    r"sentry|error[-_.]?report|bugsnag|/rum\b|/crash|telemetry|/science\b|"
+    r"analytics|taboola|/collect\b|/pixel|doubleclick|/beacon|/log(?:/|\b)|datadog",
+    re.IGNORECASE,
+)
+
+# A URL that pairs a webauthn/passkey/enrollment token with a success/complete
+# token — indicates registration succeeded (e.g. Auth0's redirect target
+# /u/mfa-webauthn-enrollment-success).
+_SUCCESS_URL = re.compile(
+    r"(?:webauthn|passkey|enrollment|security[-_]?key|credential)"
+    r"[^?#]*?(?:success|succeeded|complete|completed|enrolled|registered|confirmed)",
+    re.IGNORECASE,
 )
 
 
 def _find_last_post(requests: list, markers: list) -> dict | None:
-    """Last POST whose body contains any of `markers`."""
+    """Last POST (to a non-telemetry endpoint) whose body contains any marker."""
     found = None
     for r in requests:
         try:
+            url = r.get("url", "")
+            if _NON_FINISH_URL.search(url):
+                continue  # skip error-reporting / analytics endpoints
             if r.get("method") == "POST" and r.get("post_data") and any(
                 m and m in r["post_data"] for m in markers
             ):
@@ -231,9 +327,12 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
     """
     cred_ids = [c for c in (cred_ids or []) if c]
     # Prefer a credId match (strong evidence); fall back to field-name markers.
+    # `webauthn.create` is the clientDataJSON type and appears in any registration
+    # finish body (e.g. Salesforce VaaS sends the attestation under data.attestation
+    # with type webauthn.create — no literal "attestationObject").
     finish = _find_last_post(requests, cred_ids) or _find_last_post(
         requests, ["credential_id", "attestationObject", "attestation_object",
-                   '"rawId"', "authenticatorAttachment"]
+                   '"rawId"', "authenticatorAttachment", "webauthn.create", '"attestation":"']
     )
     if finish is None:
         return {}
@@ -249,34 +348,105 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
     resp = resps_u[pos] if 0 <= pos < len(resps_u) else (resps_u[-1] if resps_u else None)
 
     status = resp.get("status") if resp else None
-    body = (resp.get("body") if resp else "") or ""
-    # Strip Facebook/Meta's XSSI anti-hijacking prefix before inspecting.
-    clean = body
-    for prefix in ("for (;;);", "while(1);", ")]}'"):
-        if clean.startswith(prefix):
-            clean = clean[len(prefix):]
-            break
-    snippet = " ".join(clean.split())
-    if len(snippet) > 400:
-        snippet = snippet[:400] + "…"
+    clean = _strip_xssi((resp.get("body") if resp else "") or "")
+    snippet = _shorten(clean)
 
     low = clean.lower()
-    norm = "".join(low.split())  # whitespace-insensitive for "success": true
-    accepted = '"success":true' in norm or '"verified":true' in norm or '"ok":true' in norm
+    norm = "".join(low.split())  # whitespace-insensitive for "error": false etc.
+    # Explicit positive acceptance markers seen across RPs' finish responses.
+    # Includes negated-error fields ("error":false / "errors":[]) and a stored
+    # credential record (Pixiv's "credentialRecord"), which mean success.
+    accepted_marker = any(m in norm for m in (
+        '"success":true', '"verified":true', '"ok":true',
+        '"status":"success"', '"status":"ok"', '"result":"success"',
+        '"error":false', '"errors":[]', 'credentialrecord',
+        'enrollmentcomplete', 'registrationcomplete',  # X: PasskeyEnrollmentCompleteSubtask
+    ))
+    # Real rejection: structured negative markers (not bare "error" substrings,
+    # which appear negated in success bodies), or a strong plain-text phrase.
+    error_marker = any(m in norm for m in _ERROR_MARKERS) or any(p in low for p in _ERROR_PHRASES)
+
+    # Strongest signal: proof of a stored credential in ANY captured response —
+    # our fabricated credId echoed back (Canva's /profile, GitHub's 201,
+    # Nintendo's completion page), OR an enabled/active webauthn credential record
+    # (Salesforce VaaS / Heroku, which mints its own id so never echoes ours).
+    # Proof like this outranks the weak error-substring heuristic.
+    echoed = None
+    for x in responses:
+        b = _strip_xssi(x.get("body") or "")
+        if not b:
+            continue
+        bn = "".join(b.lower().split())
+        enabled_cred = "webauthn" in bn and any(
+            s in bn for s in ('"status":"enabled"', '"status":"active"', '"status":"registered"')
+        )
+        if any(c in b for c in cred_ids) or enabled_cred:
+            echoed = b
+            break
+
+    # A 2xx finish response with an empty or trivial ({}/[]) body is a success
+    # with nothing to report — common for /register/complete style endpoints
+    # (Indeed returns empty, Ticketmaster returns {}).
+    empty_2xx = status is not None and 200 <= status < 300 and clean.strip() in ("", "{}", "[]")
+
+    # Redirect-to-success: some flows finish with a 3xx to a success URL (Auth0:
+    # POST /u/mfa-webauthn-enrollment → 302 → /u/mfa-webauthn-enrollment-success).
+    # A captured URL that pairs a webauthn/enrollment token with a success token
+    # is a clear acceptance the status/body alone don't show.
+    success_url = any(
+        _SUCCESS_URL.search(x.get("url") or "") for x in (requests + responses)
+    )
+
     if status is None:
         result = "unknown"
     elif status >= 400:
-        result = "rejected"
-    elif '"errors"' in low or any(m in low for m in _ERROR_MARKERS):
-        result = "rejected?"
-    elif accepted:
+        result = "rejected"                      # hard HTTP failure
+    elif accepted_marker or echoed or empty_2xx or success_url:
+        result = "accepted"                      # success marker / stored credId / empty 2xx / success redirect
+    elif error_marker:
+        result = "rejected?"                     # a real negative marker in the body
+    elif 200 <= status < 300:
+        # The finish POST succeeded (2xx) and the body carries no rejection
+        # signal — standard REST semantics: the RP stored the credential. RPs
+        # return varied confirmations here (Dropbox's serialized_device_gid,
+        # etc.); a 2xx without an error is an acceptance.
         result = "accepted"
     else:
-        result = "accepted?"
+        result = "accepted?"                     # non-2xx (e.g. 3xx) with no signal
+
+    # When acceptance came from an echo and the matched finish body was empty or
+    # uninformative, show the credId in context (the proof) as the message.
+    if echoed and snippet in ("", "{}", "[]"):
+        hit = next((c for c in cred_ids if c in echoed), None)
+        snippet = _snippet_around(echoed, hit)
 
     fn = _friendly_name(finish)
     endpoint = _path(url) + (f" ({fn})" if fn else "")
     return {"endpoint": endpoint, "status": status, "result": result, "message": snippet}
+
+
+def _strip_xssi(body: str) -> str:
+    """Strip a leading anti-JSON-hijacking prefix (Facebook `for (;;);`, etc.)."""
+    for prefix in ("for (;;);", "while(1);", ")]}'"):
+        if body.startswith(prefix):
+            return body[len(prefix):]
+    return body
+
+
+def _shorten(text: str, limit: int = 400) -> str:
+    s = " ".join(text.split())
+    return s[:limit] + "…" if len(s) > limit else s
+
+
+def _snippet_around(body: str, needle: str, ctx: int = 200) -> str:
+    """A whitespace-collapsed window around `needle` — shows the credId echo in
+    context (e.g. inside a large HTML page) instead of the document header."""
+    i = body.find(needle) if needle else -1
+    if i == -1:
+        return _shorten(body)
+    start, end = max(0, i - ctx), i + len(needle) + ctx
+    seg = " ".join(body[start:end].split())
+    return ("…" if start > 0 else "") + seg + ("…" if end < len(body) else "")
 
 
 def _server_algs_from_network(webauthn_network: Any) -> list | None:
@@ -321,13 +491,20 @@ def _server_algs_from_network(webauthn_network: Any) -> list | None:
     return None
 
 
-def extract_advertised(observer_log: Any, network: Any = None) -> dict | None:
+def extract_advertised(observer_log: Any, network: Any = None,
+                       since_iso: str | None = None) -> dict | None:
     """Normalize one ceremony into a flat record with three parts: what the RP
     advertised, what credential was selected/returned, and the server's verdict.
 
     Returns None if no `create.called` event with public-key options is present.
     `network` is run.py's {"requests", "responses"} dict (or the older flat list).
+    `since_iso` scopes the (accumulated, cross-run) observer log to this run — pass
+    the run's start time so stale ceremonies from earlier RPs are excluded.
     """
+    since = _parse_ts(since_iso) if since_iso else None
+    if since is not None:
+        observer_log = _filter_since(observer_log, since)
+
     opts = _latest_create_options(observer_log)
     if opts is None:
         return None
@@ -362,9 +539,16 @@ def extract_advertised(observer_log: Any, network: Any = None) -> dict | None:
     record["fabrication"] = fab
 
     # (3) The server's verdict on the finish/registration request.
-    record["server"] = _server_verdict(
+    server = _server_verdict(
         requests, responses, fab.get("cred_ids") or [fab.get("cred_id")]
     )
+    # The browser fabricated a credential but the finish request/response wasn't
+    # in the network capture (run.py wasn't attached to the ceremony tab when it
+    # was sent). Flag it explicitly so a blank verdict isn't mistaken for
+    # acceptance — re-run with the tab attached to capture the real verdict.
+    if not server and fab.get("outcome") == "fabricated":
+        server = {"result": "not-captured"}
+    record["server"] = server
 
     return record
 
@@ -424,11 +608,15 @@ def flatten_experiment_columns(params: dict | None, *, rp_id: str, label: str = 
     params = params or {}
     fab = params.get("fabrication") or {}
     srv = params.get("server") or {}
+    # Reuse the advertised cells so both outputs stay in sync (drop adv_captured_at
+    # — the row already has its own captured_at).
+    adv = flatten_adv_columns(params)
+    adv.pop("adv_captured_at", None)
     return {
         "captured_at": _cell(params.get("captured_at")),
         "rp_id": _cell(rp_id),
         "label": _cell(label),
-        "adv_rp_id": _cell(params.get("rp_id_advertised")),
+        **adv,
         "fab_alg": _fab_alg_cell(fab),
         "fab_alg_offered": _cell(fab.get("fabrication_alg_offered")),
         "fab_flags": _flags_cell(fab.get("fabrication_flags")),

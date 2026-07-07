@@ -78,6 +78,25 @@ class TestExtractAdvertised(unittest.TestCase):
         observer_log = [{"eventType": "observer.installed", "payload": {}}]
         self.assertIsNone(webauthn_params.extract_advertised(observer_log))
 
+    def test_since_filter_ignores_stale_cross_run_ceremony(self):
+        # chrome.storage accumulates: a stale meta ceremony + this run's nintendo one.
+        stale = dict(SAMPLE_OPTIONS, rpId="accounts.meta.com")
+        fresh = dict(SAMPLE_OPTIONS, rpId="accounts.nintendo.com")
+        observer_log = [
+            _create_called(stale, ts="2026-07-05T14:00:00Z"),
+            _create_called(fresh, ts="2026-07-06T08:36:07Z"),
+        ]
+        # No since: still picks the chronologically-latest (nintendo), not list order.
+        self.assertEqual(
+            webauthn_params.extract_advertised(observer_log)["rp_id_advertised"],
+            "accounts.nintendo.com")
+        # since inside this run's window: the stale meta ceremony is excluded.
+        rec = webauthn_params.extract_advertised(observer_log, since_iso="2026-07-06T08:34:00Z")
+        self.assertEqual(rec["rp_id_advertised"], "accounts.nintendo.com")
+        # since after everything → nothing in window → None.
+        self.assertIsNone(
+            webauthn_params.extract_advertised(observer_log, since_iso="2026-07-06T09:00:00Z"))
+
     def test_fabrication_and_outcome(self):
         # A downgrade probe that the browser fabricated (RP acceptance is separate).
         observer_log = [
@@ -96,6 +115,8 @@ class TestExtractAdvertised(unittest.TestCase):
         cells = webauthn_params.flatten_experiment_columns(rec, rp_id="example.com", label="alg-downgrade")
         self.assertEqual(cells["label"], "alg-downgrade")
         self.assertEqual(cells["rp_id"], "example.com")
+        self.assertEqual(cells["adv_attestation"], "direct")   # advertised context in the row
+        self.assertEqual(cells["adv_algs"], "-7|-257")
         self.assertEqual(cells["fab_alg"], "RS256(-257)")
         self.assertEqual(cells["fab_alg_offered"], "false")   # downgrade: not in offered set
         self.assertEqual(cells["fab_flags"], "UP,UV,BE,AT")
@@ -180,6 +201,187 @@ class TestExtractAdvertised(unittest.TestCase):
         self.assertIn("useCreatePasskeyMutation", srv["endpoint"])   # friendly name surfaced
         self.assertEqual(srv["result"], "accepted")                 # success:true past the XSSI prefix
         self.assertNotIn("for (;;);", srv["message"])               # prefix stripped
+
+    def test_finish_matcher_skips_error_reporting(self):
+        # A Sentry error-report POST echoes the credential in its payload but must
+        # NOT be treated as the finish (its 204 would otherwise look like success).
+        cred = "dcCred1"
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": cred}}]
+        network = {
+            "requests": [{"method": "POST", "url": "https://discord.com/error-reporting-proxy/web",
+                          "post_data": "...attestationObject...%s..." % cred, "ts": "20260706T100000Z"}],
+            "responses": [{"url": "https://discord.com/error-reporting-proxy/web",
+                           "status": 204, "body": "", "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        # No real finish endpoint → fabricated-but-not-submitted, not "accepted".
+        self.assertEqual(rec["server"]["result"], "not-captured")
+
+    def test_server_verdict_not_captured(self):
+        # Browser fabricated a credential, but the finish request never made it
+        # into the network capture (run.py not attached to the ceremony tab).
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": "ABC"}}]
+        network = {"requests": [{"method": "POST", "url": "https://discord/api/v9/science",
+                                 "post_data": "{}", "ts": "20260706T100000Z"}],
+                   "responses": []}
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "not-captured")
+
+    def test_server_verdict_status_success(self):
+        # X/Twitter signals acceptance with "status":"success" (not "success":true),
+        # and its large response also contains a stray "error" substring.
+        cred = "xComCred123"
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": cred}}]
+        body = ('{"flow_token":"u;123","status":"success","subtasks":[{"subtask_id":'
+                '"PasskeyEnrollmentCompleteSubtask"}],"error_message":null}')
+        network = {
+            "requests": [{"method": "POST", "url": "https://x.com/1.1/onboarding/task.json",
+                          "post_data": '{"credential_id":"%s"}' % cred, "ts": "20260706T100000Z"}],
+            "responses": [{"url": "https://x.com/1.1/onboarding/task.json", "status": 200,
+                           "body": body, "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted")  # status:success wins over stray "error"
+
+    def test_server_verdict_201_echo_beats_error_substring(self):
+        # GitHub: multipart finish → 201, body is large options that echo our
+        # credId AND contain a stray error-ish substring ("must be"). The echo
+        # (proof of storage) must outrank the weak error heuristic.
+        cred = "ghCred789xyz"
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": cred}}]
+        body = ('{"webauthn_register_request":{"publicKey":{"rp":{"id":"github.com"}}},'
+                '"registered_credential_id":"%s","hint":"key name must be unique"}') % cred
+        network = {
+            "requests": [{"method": "POST", "url": "https://github.com/u2f/trusted_devices",
+                          "post_data": "------WebKitFormBoundary...%s..." % cred, "ts": "20260706T100000Z"}],
+            "responses": [{"url": "https://github.com/u2f/trusted_devices", "status": 201,
+                           "body": body, "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted")
+
+    def test_server_verdict_negated_error_is_accepted(self):
+        # Pixiv: 200 with "error":false, empty "errors":[], and a stored
+        # credentialRecord — a naive "error"/"errors" substring must NOT flag it.
+        cred = "pixivCred1"
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": cred}}]
+        body = ('{"error":false,"message":"","reauthenticationRequired":false,'
+                '"body":{"credentialRecord":{"id":1147177,"nickname":"Windows Hello"},"errors":[]}}')
+        network = {
+            "requests": [{"method": "POST", "url": "https://accounts.pixiv.net/ajax/passkeys/create/verify",
+                          "post_data": '{"credential_id":"%s"}' % cred, "ts": "20260706T100000Z"}],
+            "responses": [{"url": "https://accounts.pixiv.net/ajax/passkeys/create/verify",
+                           "status": 200, "body": body, "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted")
+
+    def test_server_verdict_2xx_nonempty_no_error_is_accepted(self):
+        # Dropbox: finish → 200 with a device confirmation body, no error, no
+        # generic success keyword, no credId echo. 2xx + no error = accepted.
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": "dbxCred"}}]
+        body = ('{"serialized_device_gid":"pid_2fadevice:AFALrf3A",'
+                '"vendor":"Windows Hello Hardware Authenticator"}')
+        network = {
+            "requests": [{"method": "POST", "url": "https://www.dropbox.com/2/catapult/passkeys/finish_registration",
+                          "post_data": '{"credential_id":"dbxCred"}', "ts": "20260706T100000Z"}],
+            "responses": [{"url": "https://www.dropbox.com/2/catapult/passkeys/finish_registration",
+                           "status": 200, "body": body, "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted")
+
+    def test_server_verdict_empty_2xx_is_accepted(self):
+        # Indeed: finish POST → 200 with an empty body = success, nothing to report.
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": "indeedCred"}}]
+        network = {
+            "requests": [{"method": "POST", "url": "https://secure.indeed.com/webauthn/register/complete",
+                          "post_data": '{"credential_id":"indeedCred"}', "ts": "20260706T100000Z"}],
+            "responses": [{"url": "https://secure.indeed.com/webauthn/register/complete",
+                           "status": 200, "body": "", "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted")
+
+    def test_server_verdict_empty_object_2xx_is_accepted(self):
+        # Ticketmaster: finish → 200 with body "{}" (trivially empty = success).
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": "tmCred"}}]
+        network = {
+            "requests": [{"method": "POST", "url": "https://ticketmaster.com/account/json/passkey/register/complete",
+                          "post_data": '{"credential_id":"tmCred"}', "ts": "20260706T100000Z"}],
+            "responses": [{"url": "https://ticketmaster.com/account/json/passkey/register/complete",
+                           "status": 200, "body": "{}", "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted")
+
+    def test_server_verdict_enabled_webauthn_credential(self):
+        # Salesforce VaaS (Heroku): finish sends attestation under data.attestation
+        # with type webauthn.create; response is a credential record status:enabled
+        # (Salesforce mints its own id, so our credId is never echoed).
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": "hkCred"}}]
+        network = {
+            "requests": [{"method": "POST",
+                          "url": "https://vaas.salesforce.com/vaas/v1/resources/identity-verifiers/abc",
+                          "post_data": '{"type":"webauthn.cross-platform","data":{"type":"webauthn.create","attestation":"o2Nm.."}}',
+                          "ts": "20260706T100000Z"}],
+            "responses": [{"url": "https://vaas.salesforce.com/vaas/v1/resources/identity-verifiers/abc",
+                           "status": 200,
+                           "body": '{"id":"abc","display_name":"Security Key #1","type":"webauthn.cross-platform","status":"enabled"}',
+                           "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted")
+
+    def test_server_verdict_redirect_to_success_url(self):
+        # Auth0 (trustworthy): finish POST → 302, then a redirect to
+        # /u/mfa-webauthn-enrollment-success. The success URL is the accept signal.
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": "twCred"}}]
+        network = {
+            "requests": [
+                {"method": "POST", "url": "https://trustworthy.com/u/mfa-webauthn-enrollment",
+                 "post_data": '{"credential_id":"twCred"}', "ts": "20260706T100000Z"},
+                {"method": "GET", "url": "https://trustworthy.com/u/mfa-webauthn-enrollment-success",
+                 "post_data": "", "ts": "20260706T100001Z"},
+            ],
+            "responses": [{"url": "https://trustworthy.com/u/mfa-webauthn-enrollment",
+                           "status": 302, "body": "", "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted")
+
+    def test_server_verdict_credid_echo(self):
+        # Canva-style: finish response empty (→ accepted?), but a later profile
+        # query echoes the fabricated credId → confident "accepted".
+        cred = "w37nkCKa80KvCanvaCred"
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": cred}}]
+        network = {
+            "requests": [
+                {"method": "POST", "url": "https://canva/finish",
+                 "post_data": '{"credential_id":"%s"}' % cred, "ts": "20260706T100000Z"},
+            ],
+            "responses": [
+                {"url": "https://canva/finish", "status": 200, "body": "", "ts": "20260706T100000Z"},
+                {"url": "https://canva/_ajax/profile", "status": 200,
+                 "body": '{"webauthnCredentials":[{"A":"%s","C":"08987058-..."}],"verified":true}' % cred,
+                 "ts": "20260706T100002Z"},
+            ],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        srv = rec["server"]
+        self.assertEqual(srv["result"], "accepted")           # upgraded from accepted? by the echo
+        self.assertIn("webauthnCredentials", srv["message"])  # evidence body used when finish empty
 
 
 class TestFlatten(unittest.TestCase):

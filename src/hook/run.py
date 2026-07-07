@@ -389,6 +389,10 @@ async def main():
                     help="restore cookies only, skip localStorage hydration")
     args = ap.parse_args()
 
+    # Anchor for scoping the (accumulated, cross-run) observer log to THIS run —
+    # the registration happens after this point, stale ceremonies before it.
+    run_started_iso = datetime.now(timezone.utc).isoformat()
+
     artifacts_dir = Path(f"artifacts/hook-runs/{args.rp}/{_ts()}")
     session_path = Path(args.session) if args.session else Path(f"sessions/{args.rp}.json")
 
@@ -555,6 +559,7 @@ async def main():
             params = webauthn_params.extract_advertised(
                 captured.get("observer_log"),
                 {"requests": captured.get("requests"), "responses": captured.get("responses")},
+                since_iso=run_started_iso,
             )
             if params:
                 ledger.record_advertised_params(
@@ -580,6 +585,11 @@ async def main():
                     f"  ✓ experiment logged → {webauthn_params.DEFAULT_EXPERIMENTS_CSV} "
                     f"(label={args.label or '-'}, result={exp_row['srv_result'] or exp_row['fab_outcome'] or '-'})"
                 )
+                if exp_row["srv_result"] == "not-captured":
+                    print("  ⚠ the finish request/response was NOT in the network capture —")
+                    print("    the browser fabricated a credential but run.py didn't see it sent.")
+                    print("    Re-run with run.py attached BEFORE you register, and keep the")
+                    print("    ceremony tab open, to capture the server's real accept/reject.")
             elif captured.get("observer_log"):
                 print("  observer log had no create.called event — nothing to record")
                 print("  · the hook installed, but no navigator.credentials.create() fired")

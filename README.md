@@ -324,7 +324,11 @@ overwriting. Pass **`--label <control>`** to name the run (one `hook.js` branch 
 python -m src.hook.run --rp facebook.com --no-restore --label alg-downgrade-RS256
 ```
 
-Columns: `captured_at, rp_id, label, adv_rp_id`, then
+Columns: `captured_at, rp_id, label`, then
+- **`adv_*` — the advertised context, snapshotted this run** (`adv_rp_id`, `adv_attestation`,
+  `adv_uv`, `adv_resident_key`, `adv_require_resident_key`, `adv_authenticator_attachment`,
+  `adv_algs`, `adv_attestation_formats`, `adv_timeout`) so each experiment is self-contained and
+  a change in what the RP advertises over time (control 2) is visible across rows;
 - **`fab_*` — the credential that was *selected*/returned:** `fab_alg` (e.g. `RS256(-257)`),
   `fab_alg_offered` (was that alg in the RP's `pubKeyCredParams`? `false` = a downgrade),
   `fab_flags` (authData bits, e.g. `UP,UV,BE,AT`), `fab_outcome` (`fabricated` = browser
