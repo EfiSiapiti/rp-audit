@@ -360,6 +360,36 @@ class TestExtractAdvertised(unittest.TestCase):
         rec = webauthn_params.extract_advertised(observer_log, network)
         self.assertEqual(rec["server"]["result"], "accepted")
 
+    def test_server_verdict_echo_without_finish_request(self):
+        # Google batchexecute: no matchable finish POST (opaque f.req blob), but a
+        # response echoes the credId → still accepted (proof works without a finish).
+        cred = "gCred1echo"
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": cred}}]
+        network = {
+            "requests": [{"method": "POST",
+                          "url": "https://myaccount.google.com/_/AccountSettingsStrongauthUi/data/batchexecute",
+                          "post_data": "f.req=%5B%5Bopaque-base64-blob%5D%5D", "ts": "20260707T100000Z"}],
+            "responses": [{"url": "https://myaccount.google.com/_/AccountSettingsStrongauthUi/data/batchexecute",
+                           "status": 200, "body": '[["wrb.fr",null,"[null,\\"%s\\",null]"]]' % cred,
+                           "ts": "20260707T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "accepted")
+
+    def test_fabrication_reused_outcome(self):
+        # Control 3: fabrication.reuseCredential (+ the fabrication.success it triggers)
+        # marks the run as reused, distinguishing re-register runs from fresh ones.
+        observer_log = [
+            _create_called(SAMPLE_OPTIONS),
+            {"eventType": "fabrication.reuseCredential", "payload": {"credId": "reCred", "note": "reuse"}},
+            {"eventType": "fabrication.success", "payload": {"credId": "reCred"}},
+        ]
+        rec = webauthn_params.extract_advertised(observer_log)
+        self.assertEqual(rec["fabrication"]["outcome"], "reused")
+        cells = webauthn_params.flatten_experiment_columns(rec, rp_id="rp.com", label="revoked-reregister")
+        self.assertEqual(cells["fab_outcome"], "reused")
+
     def test_server_verdict_credid_echo(self):
         # Canva-style: finish response empty (→ accepted?), but a later profile
         # query echoes the fabricated credId → confident "accepted".

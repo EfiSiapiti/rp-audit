@@ -362,8 +362,40 @@ The fabricated credential's behavior is set by constants at the top of `hook.js`
 - `FABRICATION_ALG` (ES256/RS256) and the weak-RSA `RSA_PUBLIC_EXPONENT` cover the
   algorithm-downgrade (c) and bad-key-parameter (5) controls; `AAGUID` vs `fmt:"none"`
   probes attestation handling (a).
+- `REUSE_EXISTING_ON_CREATE` (control 3, re-register a revoked key) — see below.
 
 The emitted flags are logged per operation as `fabrication.flags` in the observer log.
+
+#### Control 3 — re-register a revoked credential (`REUSE_EXISTING_ON_CREATE`)
+
+By default the hook mints a **fresh** keypair + random `credId` on every `create()`. Flip the
+`REUSE_EXISTING_ON_CREATE` constant in `hook.js` to switch that branch:
+
+- **`false` (default):** each `create()` generates a fresh credential. Use for the baseline and
+  for any control that needs a *new* credential reflecting changed settings (algorithm, key
+  params, AAGUID/flags).
+- **`true`:** if a fabricated credential already exists for that rpId (persisted in
+  `chrome.storage` from an earlier run), `create()` **re-presents the SAME `credId` + keypair**
+  (preserving `signCount`) instead of minting a new one. Logged as `fabrication.reuseCredential`;
+  the experiment row shows `fab_outcome=reused`. A new rpId with no stored key falls back to a
+  fresh credential.
+
+**Workflow** (the baseline sweep already stored a credential per RP, so no separate register step
+is needed):
+1. Ensure the RP has a stored key (from the `none-attestation` run) and it's `accepted`.
+2. **Revoke** that passkey on the RP (your mechanism).
+3. Set `REUSE_EXISTING_ON_CREATE = true` → **reload the extension → reload the RP page**.
+4. `python -m src.hook.run --rp <rp> --label revoked-reregister` → the hook replays the same
+   `credId`. Keep the tab open, press Enter.
+5. Read `srv_result` in `data/experiments.csv`: `rejected`/`rejected?` = RP tracks the revoked
+   credential (enforced); `accepted` = RP re-accepts it (the finding). Confirm the revoke actually
+   took effect first — an `accepted` only counts if the credential was truly removed beforehand.
+
+> ⚠ **Switch it back.** While `REUSE_EXISTING_ON_CREATE = true`, an RP that already has a stored
+> key will **always** replay it, silently ignoring any new `FABRICATION_ALG`/`AAGUID`/flag
+> settings. Set it back to `false` (or delete that RP's key with
+> `await window.__webauthnObserverDeleteKey("<rp>")`) before running controls that need a fresh
+> credential.
 
 #### Managing fabricated keys (chrome.storage)
 

@@ -219,7 +219,36 @@ def _new_capture() -> dict:
         "console": [],
         "page_errors": [],
         "observer_log": None,
+        # Structured [webauthn-observer] events resolved live from console args —
+        # a fallback source for create.called/fabrication.* when the in-page log is
+        # lost to a fast post-registration redirect (e.g. Nintendo → /portal).
+        "console_events": [],
+        "_console_tasks": set(),
     }
+
+
+async def _capture_console_event(msg, captured: dict) -> None:
+    """Resolve a `[webauthn-observer] <eventType>` console message's payload arg into
+    a structured observer-log-style entry. Done live (as the event fires) so it
+    survives a navigation that would dispose the in-page log."""
+    try:
+        args = msg.args
+        event_type = None
+        if args:
+            head = await args[0].json_value()
+            prefix = "[webauthn-observer] "
+            if isinstance(head, str) and head.startswith(prefix):
+                event_type = head[len(prefix):].strip()
+        if not event_type:
+            return
+        payload = await args[1].json_value() if len(args) > 1 else {}
+        captured["console_events"].append({
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "eventType": event_type,
+            "payload": payload,
+        })
+    except Exception:
+        pass  # handle disposed (very fast navigation) or non-serializable arg
 
 
 def _attach_listeners(page: Page, captured: dict) -> None:
@@ -292,13 +321,19 @@ def _attach_listeners(page: Page, captured: dict) -> None:
             return  # target closed during teardown — ignore
 
     def on_console(msg) -> None:
-        captured["console"].append({
-            "ts": _ts(),
-            "type": msg.type,
-            "text": msg.text,
-        })
-        if msg.text and ("[hook]" in msg.text.lower() or "webauthn" in msg.text.lower()):
-            print(f"  hook: {msg.text}")
+        try:
+            text = msg.text
+        except Exception:
+            return
+        captured["console"].append({"ts": _ts(), "type": msg.type, "text": text})
+        if text and ("[hook]" in text.lower() or "webauthn" in text.lower()):
+            print(f"  hook: {text}")
+        # Resolve structured hook events from the console args NOW, before any
+        # navigation disposes them. Keep a task reference so it isn't GC'd.
+        if text and text.startswith("[webauthn-observer] "):
+            t = asyncio.ensure_future(_capture_console_event(msg, captured))
+            captured["_console_tasks"].add(t)
+            t.add_done_callback(captured["_console_tasks"].discard)
 
     def on_pageerror(err) -> None:
         captured["page_errors"].append({"ts": _ts(), "message": str(err)})
@@ -544,7 +579,20 @@ async def main():
                         print("  recovered log from chrome.storage (ceremony tab had closed)")
                 except Exception:
                     pass
-            captured["observer_log"] = _dedupe_frame_blocks((live or []) + (persisted or [])) or None
+            # Fold in structured console events (resolved live, immune to the
+            # navigation loss above) as a fallback "(console)" frame — recovers
+            # create.called/fabrication.* on RPs that hard-redirect after finish.
+            try:
+                pending = list(captured.get("_console_tasks") or [])
+                if pending:
+                    await asyncio.gather(*pending, return_exceptions=True)
+            except Exception:
+                pass
+            ce = captured.get("console_events") or []
+            frames = _dedupe_frame_blocks((live or []) + (persisted or []))
+            if ce:
+                frames = frames + [{"frame_url": "(console)", "entries": ce}]
+            captured["observer_log"] = frames or None
         except Exception as e:
             print(f"  observer-log collection failed: {e}")
 

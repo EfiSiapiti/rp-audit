@@ -184,6 +184,7 @@ def _scan_fabrication(observer_log: Any) -> dict:
     error = None
     cred_id = None
     cred_ids: list = []
+    reused = False
     for entry in _iter_entries(observer_log):
         et = entry.get("eventType")
         payload = entry.get("payload") or {}
@@ -191,6 +192,14 @@ def _scan_fabrication(observer_log: Any) -> dict:
             alg_sel = payload
         elif et == "fabrication.flags" and payload.get("op") == "create":
             flags = payload.get("flags")
+        elif et == "fabrication.reuseCredential":
+            # Control 3: the hook re-presented an existing credId (revoked-key re-register).
+            reused = True
+            cid = payload.get("credId")
+            if cid:
+                cred_id = cid
+                if cid not in cred_ids:
+                    cred_ids.append(cid)
         elif et == "fabrication.success":
             outcome = "fabricated"
             cid = payload.get("credId")
@@ -203,6 +212,11 @@ def _scan_fabrication(observer_log: Any) -> dict:
         elif et == "create.failed":
             outcome = "create-failed"
             error = (payload.get("error") or {}).get("name")
+
+    # A reuse still produces a fabrication.success afterwards; mark it as reused so
+    # the re-register runs are distinguishable from fresh fabrications.
+    if reused and outcome == "fabricated":
+        outcome = "reused"
 
     out: dict = {"outcome": outcome}
     if error:
@@ -326,6 +340,26 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
     snippet (ground truth), and a best-effort guess. Never raises.
     """
     cred_ids = [c for c in (cred_ids or []) if c]
+
+    # Proof of storage from ANY captured response, independent of identifying the
+    # finish *request*: our fabricated credId echoed back, or an enabled/active
+    # webauthn credential record. This is what lets opaque RPC flows (Google's
+    # batchexecute, which base64-wraps the whole credential) still resolve to
+    # accepted — there's no matchable finish POST, but the response proves storage.
+    echoed = None
+    echoed_resp = None
+    for x in responses:
+        b = _strip_xssi(x.get("body") or "")
+        if not b:
+            continue
+        bn = "".join(b.lower().split())
+        enabled_cred = "webauthn" in bn and any(
+            s in bn for s in ('"status":"enabled"', '"status":"active"', '"status":"registered"')
+        )
+        if any(c in b for c in cred_ids) or enabled_cred:
+            echoed, echoed_resp = b, x
+            break
+
     # Prefer a credId match (strong evidence); fall back to field-name markers.
     # `webauthn.create` is the clientDataJSON type and appears in any registration
     # finish body (e.g. Salesforce VaaS sends the attestation under data.attestation
@@ -335,6 +369,14 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
                    '"rawId"', "authenticatorAttachment", "webauthn.create", '"attestation":"']
     )
     if finish is None:
+        # No identifiable finish request (e.g. Google's opaque batchexecute RPC).
+        # If a response still proves the credential was stored, it's accepted.
+        if echoed is not None:
+            hit = next((c for c in cred_ids if c in echoed), None)
+            msg = _snippet_around(echoed, hit) if hit else _shorten(echoed)
+            return {"endpoint": _path(echoed_resp.get("url", "")),
+                    "status": echoed_resp.get("status"),
+                    "result": "accepted", "message": msg}
         return {}
 
     url = finish.get("url", "")
@@ -366,23 +408,8 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
     # which appear negated in success bodies), or a strong plain-text phrase.
     error_marker = any(m in norm for m in _ERROR_MARKERS) or any(p in low for p in _ERROR_PHRASES)
 
-    # Strongest signal: proof of a stored credential in ANY captured response —
-    # our fabricated credId echoed back (Canva's /profile, GitHub's 201,
-    # Nintendo's completion page), OR an enabled/active webauthn credential record
-    # (Salesforce VaaS / Heroku, which mints its own id so never echoes ours).
-    # Proof like this outranks the weak error-substring heuristic.
-    echoed = None
-    for x in responses:
-        b = _strip_xssi(x.get("body") or "")
-        if not b:
-            continue
-        bn = "".join(b.lower().split())
-        enabled_cred = "webauthn" in bn and any(
-            s in bn for s in ('"status":"enabled"', '"status":"active"', '"status":"registered"')
-        )
-        if any(c in b for c in cred_ids) or enabled_cred:
-            echoed = b
-            break
+    # (`echoed` — proof of a stored credential in any response — is computed above,
+    # since it must work even when no finish request is matched.)
 
     # A 2xx finish response with an empty or trivial ({}/[]) body is a success
     # with nothing to report — common for /register/complete style endpoints
