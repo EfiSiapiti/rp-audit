@@ -331,6 +331,9 @@ Columns: `captured_at, rp_id, label`, then
   a change in what the RP advertises over time (control 2) is visible across rows;
 - **`fab_*` — the credential that was *selected*/returned:** `fab_alg` (e.g. `RS256(-257)`),
   `fab_alg_offered` (was that alg in the RP's `pubKeyCredParams`? `false` = a downgrade),
+  `fab_rsa_e` / `fab_rsa_n_bits` (weak-RSA control 5 — the public exponent and modulus
+  length the hook presented, e.g. `3` / `512`; blank for non-RSA algs like ES256, so a
+  weak-crypto run is distinguishable from a normal RS256 one),
   `fab_flags` (authData bits, e.g. `UP,UV,BE,AT`), `fab_outcome` (`fabricated` = browser
   returned a credential; `create-failed:<Error>` = the browser rejected it);
 - **`srv_*` — what the *server* said back:** the finish request/response located on the wire
@@ -359,9 +362,13 @@ The fabricated credential's behavior is set by constants at the top of `hook.js`
   (BE/BS, control e) drive the authenticator-data flags byte. Setting `SET_BACKUP_STATE`
   without `SET_BACKUP_ELIGIBLE` is spec-invalid (BS⇒BE) and logs a warning — that
   misconfiguration is itself a probe of whether the RP rejects it.
-- `FABRICATION_ALG` (ES256/RS256) and the weak-RSA `RSA_PUBLIC_EXPONENT` cover the
-  algorithm-downgrade (c) and bad-key-parameter (5) controls; `AAGUID` vs `fmt:"none"`
-  probes attestation handling (a).
+- `FABRICATION_ALG` (ES256/RS256) and the weak-RSA `RSA_PUBLIC_EXPONENT` /
+  `RSA_MODULUS_LENGTH` cover the algorithm-downgrade (c) and bad-key-parameter (5)
+  controls; `AAGUID` vs `fmt:"none"` probes attestation handling (a). The exponent and
+  modulus the hook presents are recorded per run as `fab_rsa_e` / `fab_rsa_n_bits` in
+  `data/experiments.csv` (blank for EC algs). For the **weak-crypto-e3** run, set
+  `FABRICATION_ALG=RS256` with `RSA_PUBLIC_EXPONENT=3` (and a small `RSA_MODULUS_LENGTH`
+  for the small-`n` variant), reload the extension, and pass `--label weak-crypto-e3`.
 - `REUSE_EXISTING_ON_CREATE` (control 3, re-register a revoked key) — see below.
 
 The emitted flags are logged per operation as `fabrication.flags` in the observer log.

@@ -70,6 +70,8 @@ EXPERIMENT_COLUMNS = [
     # selected / returned
     "fab_alg",
     "fab_alg_offered",
+    "fab_rsa_e",           # weak-RSA control (5): public exponent the hook presented (e.g. 3)
+    "fab_rsa_n_bits",      # weak-RSA control (5): modulus length in bits (e.g. 512 = small n)
     "fab_flags",
     "fab_outcome",
     # server verdict
@@ -229,6 +231,13 @@ def _scan_fabrication(observer_log: Any) -> dict:
         out["fabrication_alg"] = alg_sel.get("fabricationAlg")
         out["fabrication_cose_alg"] = alg_sel.get("coseAlg")
         out["fabrication_alg_offered"] = alg_sel.get("algInPubKeyCredParams")
+        # Weak-RSA control (5): the key parameters the hook actually presented.
+        # hook.js emits these only for RSA fabrication algs (RS256 etc.); ES256 and
+        # other EC algs leave them unset, so blank cells mean "not an RSA run".
+        if alg_sel.get("rsaPublicExponent") is not None:
+            out["fabrication_rsa_e"] = alg_sel.get("rsaPublicExponent")
+        if alg_sel.get("rsaModulusLength") is not None:
+            out["fabrication_rsa_modulus_bits"] = alg_sel.get("rsaModulusLength")
     if flags:
         out["fabrication_flags"] = flags
     return out
@@ -327,6 +336,56 @@ def _friendly_name(req: dict) -> str | None:
     return pd[i + len(marker):].split("&", 1)[0][:60] or None
 
 
+# Registration begin/options endpoints — where the ceremony is set up (a challenge
+# is issued) before any credential exists. A 4xx here, with no finish request to
+# follow, means the RP refused the ceremony at the door (an auth gate: 401/403/422)
+# — the "block-cluster" pattern where an RP won't even start a (re)registration.
+_BEGIN_URL = re.compile(
+    r"(?:webauthn|passkey|fido|attestation|register|registration|credential)"
+    r"[^?#]*?(?:options|begin|challenge|start|initiali[sz]e)",
+    re.IGNORECASE,
+)
+
+
+def _begin_denial(requests: list, responses: list) -> dict | None:
+    """A registration begin/options call the RP rejected (4xx), used only when no
+    finish request exists. That's the ceremony being blocked at the door (e.g.
+    OnlyFans' register/options → 401 'Access denied') — a real rejection, not a
+    capture miss. Returns a verdict dict, or None if no such denial is present.
+    """
+    denied = None
+    for x in responses:
+        url = x.get("url", "")
+        status = x.get("status")
+        if not isinstance(status, int) or status < 400:
+            continue
+        if _NON_FINISH_URL.search(url) or not _BEGIN_URL.search(url):
+            continue
+        denied = x  # last denied begin/options call wins
+    if denied is None:
+        return None
+    body = _strip_xssi(denied.get("body") or "")
+    return {"endpoint": _path(denied.get("url", "")), "status": denied.get("status"),
+            "result": "rejected", "message": _shorten(body)}
+
+
+def _looks_like_begin(body: str) -> bool:
+    """True if a response body is a registration *begin*/options payload — a
+    challenge alongside credential params — rather than a finish verdict.
+
+    Some RPs (e.g. Nintendo) serve begin (GET) and finish (POST) on the SAME URL.
+    If the finish response is missed, position pairing can land on the begin's
+    200; treating that as the finish once produced a false 'accepted'. Excluding
+    begin bodies keeps them out of the finish-response pool.
+    """
+    if not body:
+        return False
+    n = "".join(_strip_xssi(body).lower().split())
+    if "webauthnoptions" in n:
+        return True
+    return '"challenge"' in n and "pubkeycredparams" in n
+
+
 def _server_verdict(requests: list, responses: list, cred_ids: list | None = None) -> dict:
     """Find the registration *finish* request/response and summarize the verdict.
 
@@ -377,17 +436,49 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
             return {"endpoint": _path(echoed_resp.get("url", "")),
                     "status": echoed_resp.get("status"),
                     "result": "accepted", "message": msg}
+        # No finish request — but the RP may have refused the ceremony at the
+        # begin/options step (an auth gate). That's a rejection, not a miss.
+        denial = _begin_denial(requests, responses)
+        if denial is not None:
+            return denial
         return {}
 
     url = finish.get("url", "")
-    # Pair by position: the k-th POST to this URL → the k-th response to it.
+    # Pair by position: the k-th request to this URL → the k-th response. run.py
+    # records both in arrival order, so this aligns begin/finish even when an RP
+    # serves both as POSTs to one URL (e.g. eBay). Crucially, do NOT borrow a
+    # different same-URL response when the finish's own response is missing — that
+    # once paired a finish to the begin's 200 and reported a false 'accepted'
+    # (Nintendo, GET begin + POST finish, finish response never captured). If it
+    # isn't there, resp stays None → not-captured below.
     reqs_u = [r for r in requests if r.get("url") == url]
     resps_u = [x for x in responses if x.get("url") == url]
     try:
         pos = reqs_u.index(finish)
     except ValueError:
         pos = len(reqs_u) - 1
-    resp = resps_u[pos] if 0 <= pos < len(resps_u) else (resps_u[-1] if resps_u else None)
+    resp = resps_u[pos] if 0 <= pos < len(resps_u) else None
+
+    # Safety net for the aligned-but-wrong case: if the paired response is actually
+    # a registration begin/options payload (challenge + params, no verdict), it is
+    # not a finish result — don't read acceptance from it.
+    if resp is not None and _looks_like_begin(resp.get("body") or ""):
+        resp = None
+
+    # The finish request matched but its own response wasn't captured. Don't infer
+    # an outcome from an unrelated response. If some response echoed our credId,
+    # storage is proven (accepted); otherwise report not-captured rather than guess.
+    if resp is None:
+        if echoed:
+            hit = next((c for c in cred_ids if c in echoed), None)
+            msg = _snippet_around(echoed, hit) if hit else _shorten(echoed)
+            return {"endpoint": _path(echoed_resp.get("url", "")),
+                    "status": echoed_resp.get("status"),
+                    "result": "accepted", "message": msg}
+        fn = _friendly_name(finish)
+        endpoint = _path(url) + (f" ({fn})" if fn else "")
+        return {"endpoint": endpoint, "status": None,
+                "result": "not-captured", "message": ""}
 
     status = resp.get("status") if resp else None
     clean = _strip_xssi((resp.get("body") if resp else "") or "")
@@ -646,6 +737,8 @@ def flatten_experiment_columns(params: dict | None, *, rp_id: str, label: str = 
         **adv,
         "fab_alg": _fab_alg_cell(fab),
         "fab_alg_offered": _cell(fab.get("fabrication_alg_offered")),
+        "fab_rsa_e": _cell(fab.get("fabrication_rsa_e")),
+        "fab_rsa_n_bits": _cell(fab.get("fabrication_rsa_modulus_bits")),
         "fab_flags": _flags_cell(fab.get("fabrication_flags")),
         "fab_outcome": _outcome_cell(fab),
         "srv_endpoint": _cell(srv.get("endpoint")),
@@ -656,15 +749,44 @@ def flatten_experiment_columns(params: dict | None, *, rp_id: str, label: str = 
     }
 
 
+def _migrate_experiments_header(path: Path) -> None:
+    """Bring an older/edited experiments.csv up to the current EXPERIMENT_COLUMNS.
+
+    EXPERIMENT_COLUMNS grows over time (e.g. the fab_rsa_* cells added for the
+    weak-RSA control), and Excel round-trips leave a stray trailing-delimiter
+    column. Either way the on-disk header no longer matches, so appending a
+    current row onto it would shift cells. When that happens, rewrite the file
+    once with the current header, preserving every existing row (new columns
+    backfilled empty, the stray column dropped). No-op when already current.
+    """
+    if not path.exists():
+        return
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f, delimiter=";")
+        existing = [c for c in (reader.fieldnames or []) if c]  # drop stray '' column
+        rows = [dict(r) for r in reader]
+    if existing == EXPERIMENT_COLUMNS:
+        return
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(
+            f, fieldnames=EXPERIMENT_COLUMNS, delimiter=";",
+            restval="", extrasaction="ignore",  # ignores the stray '' key + old extras
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def append_experiment(row: dict, *, path: Path | str = DEFAULT_EXPERIMENTS_CSV) -> None:
     """Append one experiment row to the log, writing the header if the file is new.
 
     Semicolon-delimited to match the status sheet's Excel locale. Append-only, so
-    every control run on an RP is preserved for comparison (never overwritten).
+    every control run on an RP is preserved for comparison (never overwritten). An
+    older-schema file is migrated to the current header first so cells stay aligned.
     """
     path = Path(path)
-    is_new = not path.exists()
     path.parent.mkdir(parents=True, exist_ok=True)
+    _migrate_experiments_header(path)
+    is_new = not path.exists()
     with open(path, "a", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(
             f, fieldnames=EXPERIMENT_COLUMNS, delimiter=";",
