@@ -72,6 +72,8 @@ EXPERIMENT_COLUMNS = [
     "fab_alg_offered",
     "fab_rsa_e",           # weak-RSA control (5): public exponent the hook presented (e.g. 3)
     "fab_rsa_n_bits",      # weak-RSA control (5): modulus length in bits (e.g. 512 = small n)
+    "fab_key_source",      # leaked-key control (leaked-key-test): "leaked" = publicly-known private key; blank otherwise
+    "fab_key_leak_origin", # leaked-key control (leaked-key-test): where the key leaked from (e.g. google/keytransparency#1530)
     "fab_flags",
     "fab_outcome",
     # server verdict
@@ -238,6 +240,14 @@ def _scan_fabrication(observer_log: Any) -> dict:
             out["fabrication_rsa_e"] = alg_sel.get("rsaPublicExponent")
         if alg_sel.get("rsaModulusLength") is not None:
             out["fabrication_rsa_modulus_bits"] = alg_sel.get("rsaModulusLength")
+        # Leaked-key control (leaked-key-test): the hook injected a publicly-known private
+        # key instead of generating a fresh one. hook.js emits keySource="leaked"
+        # (+ the leak's provenance) only for that branch; other branches leave these
+        # unset, so blank cells mean "not a leaked-key run".
+        if alg_sel.get("keySource") is not None:
+            out["fabrication_key_source"] = alg_sel.get("keySource")
+        if alg_sel.get("leakOrigin") is not None:
+            out["fabrication_key_leak_origin"] = alg_sel.get("leakOrigin")
     if flags:
         out["fabrication_flags"] = flags
     return out
@@ -739,6 +749,8 @@ def flatten_experiment_columns(params: dict | None, *, rp_id: str, label: str = 
         "fab_alg_offered": _cell(fab.get("fabrication_alg_offered")),
         "fab_rsa_e": _cell(fab.get("fabrication_rsa_e")),
         "fab_rsa_n_bits": _cell(fab.get("fabrication_rsa_modulus_bits")),
+        "fab_key_source": _cell(fab.get("fabrication_key_source")),
+        "fab_key_leak_origin": _cell(fab.get("fabrication_key_leak_origin")),
         "fab_flags": _flags_cell(fab.get("fabrication_flags")),
         "fab_outcome": _outcome_cell(fab),
         "srv_endpoint": _cell(srv.get("endpoint")),

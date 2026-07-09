@@ -122,6 +122,32 @@ class TestExtractAdvertised(unittest.TestCase):
         self.assertEqual(cells["fab_flags"], "UP,UV,BE,AT")
         self.assertEqual(cells["fab_outcome"], "fabricated")
 
+    def test_fabrication_leaked_key(self):
+        # Leaked-key control (key-test): the hook injects a publicly-known private
+        # key. fabrication.algSelection carries keySource="leaked" + leakOrigin,
+        # which surface as fab_key_source / fab_key_leak_origin in the experiment row.
+        observer_log = [
+            _create_called(SAMPLE_OPTIONS),
+            {"eventType": "fabrication.algSelection", "payload": {
+                "fabricationAlg": "ES256", "coseAlg": -7, "algInPubKeyCredParams": True,
+                "keySource": "leaked", "keyCurve": "P-256",
+                "leakOrigin": "google/keytransparency#1530"}},
+            {"eventType": "fabrication.flags", "payload": {
+                "op": "create", "flags": {"UP": True, "UV": True, "AT": True}}},
+            {"eventType": "fabrication.success", "payload": {"rpId": "example.com"}},
+        ]
+        rec = webauthn_params.extract_advertised(observer_log)
+        fab = rec["fabrication"]
+        self.assertEqual(fab["fabrication_key_source"], "leaked")
+        self.assertEqual(fab["fabrication_key_leak_origin"], "google/keytransparency#1530")
+        cells = webauthn_params.flatten_experiment_columns(rec, rp_id="example.com", label="leaked-key-test")
+        self.assertEqual(cells["label"], "leaked-key-test")
+        self.assertEqual(cells["fab_alg"], "ES256(-7)")
+        self.assertEqual(cells["fab_key_source"], "leaked")
+        self.assertEqual(cells["fab_key_leak_origin"], "google/keytransparency#1530")
+        self.assertEqual(cells["fab_rsa_e"], "")       # blank: not an RSA run
+        self.assertEqual(cells["fab_outcome"], "fabricated")
+
     def test_outcome_create_failed(self):
         observer_log = [
             _create_called(SAMPLE_OPTIONS),

@@ -334,6 +334,9 @@ Columns: `captured_at, rp_id, label`, then
   `fab_rsa_e` / `fab_rsa_n_bits` (weak-RSA control 5 — the public exponent and modulus
   length the hook presented, e.g. `3` / `512`; blank for non-RSA algs like ES256, so a
   weak-crypto run is distinguishable from a normal RS256 one),
+  `fab_key_source` / `fab_key_leak_origin` (leaked-key control `key-test` — `leaked` = the
+  credential public key is a **publicly-known** private key, plus where it leaked from, e.g.
+  `google/keytransparency#1530`; blank on runs that generate a fresh key),
   `fab_flags` (authData bits, e.g. `UP,UV,BE,AT`), `fab_outcome` (`fabricated` = browser
   returned a credential; `create-failed:<Error>` = the browser rejected it);
 - **`srv_*` — what the *server* said back:** the finish request/response located on the wire
@@ -372,6 +375,27 @@ The fabricated credential's behavior is set by constants at the top of `hook.js`
 - `REUSE_EXISTING_ON_CREATE` (control 3, re-register a revoked key) — see below.
 
 The emitted flags are logged per operation as `fabrication.flags` in the observer log.
+
+#### Control `key-test` — a leaked (publicly-known) private key
+
+The default `hook.js` branch generates a fresh keypair per `create()`. The **`key-test`** branch
+instead injects a **fixed, publicly-known** EC P-256 private key — one committed in plaintext to
+Google's public `google/keytransparency` repo and reported as a hard-coded secret (issue #1530;
+PEM in `./leaked-key/leaked_priv.pem`, injected as a verified JWK). Because the private key is
+already public, the credential offers **no genuine proof of possession**: this probes whether an
+RP will accept it anyway.
+
+The hook fabricates a spec-conformant `fmt:"none"` attestation carrying the leaked key and signs
+with ES256 (`-7`), tagging `fabrication.algSelection` with `keySource:"leaked"`, `keyCurve`, and
+`leakOrigin`. The harness surfaces those as `fab_key_source` / `fab_key_leak_origin` in
+`data/experiments.csv` (blank on fresh-key runs). Run it with:
+
+```powershell
+python -m src.hook.run --rp <rp> --label leaked-key-test
+```
+
+Read `srv_result`: `accepted` = the RP registered a credential whose private key is public (the
+finding); `rejected`/`rejected?` = the RP refused it.
 
 #### Control 3 — re-register a revoked credential (`REUSE_EXISTING_ON_CREATE`)
 
