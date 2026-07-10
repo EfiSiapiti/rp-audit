@@ -291,6 +291,13 @@ _ERROR_MARKERS = (
     '"verified":false',
 )
 
+# A populated error OBJECT, e.g. {"error":{"code":"1178",...}} (Microsoft's
+# ProvisionPasskey) — distinct from the boolean "error":true above. Matches only a
+# non-empty string code/message/reason, so "error":{}, "error":null, "error":false,
+# and "error":{"code":""} (empty) don't trip it. Runs against the whitespace-
+# stripped, lowercased body.
+_ERROR_OBJECT = re.compile(r'"error":\{"(?:code|message|reason|type)":"[^"]')
+
 # Strong plain-text error phrases (for non-JSON / HTML rejection bodies). Chosen
 # to be unlikely to appear in a negated/positive context.
 _ERROR_PHRASES = (
@@ -433,10 +440,19 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
     # `webauthn.create` is the clientDataJSON type and appears in any registration
     # finish body (e.g. Salesforce VaaS sends the attestation under data.attestation
     # with type webauthn.create — no literal "attestationObject").
-    finish = _find_last_post(requests, cred_ids) or _find_last_post(
+    # Prefer the POST that actually submits the WebAuthn credential (carries the
+    # attestation / publicKeyCredentialJson) over a bare credId echo. Some flows
+    # echo the credId in a *navigation* POST that isn't the finish (Microsoft's
+    # /proofs/Manage/additional), while the real finish (/ProvisionPasskey) wraps
+    # the credential so the literal credId isn't present — matching credId-first
+    # there locked onto the wrong POST and read an unrelated 200 as 'accepted'.
+    # Fall back to a credId match for RPs that base64-wrap the whole attestation
+    # with no literal field names (Meta under credential_id/payload).
+    finish = _find_last_post(
         requests, ["credential_id", "attestationObject", "attestation_object",
-                   '"rawId"', "authenticatorAttachment", "webauthn.create", '"attestation":"']
-    )
+                   '"rawId"', "authenticatorAttachment", "webauthn.create",
+                   '"attestation":"', "publicKeyCredentialJson"]
+    ) or _find_last_post(requests, cred_ids)
     if finish is None:
         # No identifiable finish request (e.g. Google's opaque batchexecute RPC).
         # If a response still proves the credential was stored, it's accepted.
@@ -507,7 +523,9 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
     ))
     # Real rejection: structured negative markers (not bare "error" substrings,
     # which appear negated in success bodies), or a strong plain-text phrase.
-    error_marker = any(m in norm for m in _ERROR_MARKERS) or any(p in low for p in _ERROR_PHRASES)
+    error_marker = (any(m in norm for m in _ERROR_MARKERS)
+                    or bool(_ERROR_OBJECT.search(norm))
+                    or any(p in low for p in _ERROR_PHRASES))
 
     # (`echoed` — proof of a stored credential in any response — is computed above,
     # since it must work even when no finish request is matched.)
