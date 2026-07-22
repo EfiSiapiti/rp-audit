@@ -144,26 +144,10 @@ python -m src.init targets_selected.csv
 This populates `data/ledger.json` with one entry per RP. It does not do the login/signup
 check itself; that is part of your preprocessing and discovery workflow.
 
-If a target needs an explicit signup URL, set or override it after init:
-
-```powershell
-python -m src.set_signup notion.so https://www.notion.so/signup
-```
-
-That command updates the ledger entry and resets failed or needs-review items back to
-`pending` so they can be tried again.
-
 If you want the triage view for the raw targets, run:
 
 ```powershell
 python -m src.lib.triage data/targets.csv
-```
-
-To copy the current ledger `state` and last history `note` into a selected-target
-CSV, run:
-
-```powershell
-python -m src.sync_selected_status_notes data/targets_selected.csv data/targets_selected_status.csv
 ```
 
 ## Running
@@ -342,11 +326,9 @@ Each experiment row tells the whole story: **advertised (via `adv_rp_id`) → se
 verdict**, and a rejected registration is fully recorded. The enforcement signal is `srv_result`
 + `srv_message`.
 
-The ledger is the source of truth; the CSV is a projection. Re-running
-`python -m src.sync_selected_status_notes` reprojects the same `adv_*` columns from the
-ledger for **all** RPs — use it to backfill the sheet from runs captured earlier. The
-sync now preserves the status file's existing delimiter (that file is `;`-delimited), so a
-resync won't reformat it.
+The ledger is the source of truth; the CSV is a projection. Every hook run upserts its own
+row via `upsert_status_csv`, preserving the status file's existing delimiter (that file is
+`;`-delimited).
 
 #### Exercising the fabrication controls (hook.js)
 
@@ -521,9 +503,7 @@ Then re-run from step 2.
 ```
 src/
 ├── init.py                   # Ledger initialization from targets CSV
-├── set_signup.py             # CLI helper to set signup_url for an entry
 ├── report.py                 # Summarize ledger / batch-log results
-├── requeue.py                # Requeue RPs for another attempt
 ├── hook/                     # Manual observation harness
 │   ├── run.py
 │   └── __init__.py
@@ -539,8 +519,6 @@ src/
     ├── outcomes.py           # Valid outcome set + retry policy
     ├── parse.py              # CSV parsing
     ├── run_record.py         # Shared run-record writers (ledger/artifact/batch log)
-    ├── snapshot.py           # Page snapshot helpers
-    ├── dates.py              # Date parsing helpers
     ├── webauthn_params.py    # Advertised-params extract + ledger/CSV projection
     └── triage.py             # RP triage (banks, auth subdomains, etc.)
 

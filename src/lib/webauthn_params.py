@@ -10,9 +10,8 @@ helpers here so every run auto-records, without a manual step:
                                               ├─ ledger.record_advertised_params
                                               └─ upsert_status_csv  (adv_* columns)
 
-The status CSV stays a projection of the ledger: `sync_selected_status_notes`
-reprojects the same `adv_*` columns from `entry["advertised_params"]`, so a
-resync never disagrees with what a run wrote.
+The status CSV stays a projection of the ledger: every run's `upsert_status_csv`
+call writes the same `adv_*` columns straight from `entry["advertised_params"]`.
 """
 
 from __future__ import annotations
@@ -30,8 +29,8 @@ from src.lib.parse import _sniff_delimiter
 DEFAULT_STATUS_CSV = Path("data/targets_selected_status.csv")
 
 # Advertised-only columns for the per-RP status sheet (targets_selected_status.csv).
-# One row per RP: what the RP requested. Kept as a module constant so the per-run
-# writer (upsert_status_csv) and the bulk resync (sync_selected_status_notes) agree.
+# One row per RP: what the RP requested. Kept as a module constant so every
+# writer of this sheet agrees on the column set.
 ADV_COLUMNS = [
     "adv_rp_id",
     "adv_attestation",

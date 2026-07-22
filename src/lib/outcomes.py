@@ -1,9 +1,10 @@
 """Outcome policy — the single source of truth for what each ledger state means.
 
 The ledger stores a free-form `state` string per RP (see ledger.py). This module
-classifies those states into buckets so the report and the requeue CLI agree on
-which RPs are *done* (terminal), which are worth a *second pass* (retryable), and
-which have been retried too many times (exhausted).
+classifies those states into buckets so callers agree on which RPs are *done*
+(terminal), which are worth a *second pass* (retryable), and which have been
+retried too many times (exhausted). See `python -m src.report` for where this
+is surfaced.
 
 Kept dependency-free (no project imports) so anything can import it without cycles.
 """
@@ -16,7 +17,7 @@ from __future__ import annotations
 # The agent succeeded and the account exists in its authenticated browser profile.
 SUCCESS = {"captured"}
 
-# Done — never worth an automatic second pass. A human can still --force a requeue.
+# Done — never worth an automatic second pass.
 TERMINAL = {
     "captured",                  # success (also terminal: don't re-run)
     "phone-gated",               # phone verification required
@@ -108,8 +109,8 @@ def is_terminal(state: str, note: str = "") -> bool:
     """True if this (state, note) should never be auto-retried.
 
     Unknown / legacy / interrupted states (e.g. in-progress, needs-review,
-    subdomain-suspect, any enroll-* state) are treated as terminal so the
-    requeue sweep never disturbs them.
+    subdomain-suspect, any enroll-* state) are treated as terminal so an
+    automatic second-pass sweep never disturbs them.
     """
     return not is_retryable(state, note)
 

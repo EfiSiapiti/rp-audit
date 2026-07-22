@@ -6,8 +6,7 @@ Usage:
 
 Never writes. Classifies each RP via lib.outcomes into
 success / terminal / retry (second-pass candidate) / exhausted, and lists the
-second-pass candidates so you can decide what to requeue (see
-`python -m src.requeue`).
+second-pass candidates so you can decide what to re-run by hand.
 """
 
 from __future__ import annotations
