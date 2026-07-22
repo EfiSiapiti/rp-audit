@@ -74,6 +74,7 @@ EXPERIMENT_COLUMNS = [
     "fab_rsa_n_bits",      # weak-RSA control (5): modulus length in bits (e.g. 512 = small n)
     "fab_key_source",      # leaked-key control (leaked-key-test): "leaked" = publicly-known private key; blank otherwise
     "fab_key_leak_origin", # leaked-key control (leaked-key-test): where the key leaked from (e.g. google/keytransparency#1530)
+    "fab_ec_scalar",       # weak-scalar control (weak-scalar-test): small known ECDSA private scalar d, so Q=d*G (e.g. 2); blank otherwise
     "fab_flags",
     "fab_outcome",
     # server verdict
@@ -248,6 +249,12 @@ def _scan_fabrication(observer_log: Any) -> dict:
             out["fabrication_key_source"] = alg_sel.get("keySource")
         if alg_sel.get("leakOrigin") is not None:
             out["fabrication_key_leak_origin"] = alg_sel.get("leakOrigin")
+        # Weak-scalar control (weak-scalar-test): the hook presented an ES256 key
+        # whose private scalar is a small, publicly-known value d (public key
+        # Q = d*G). hook.js emits weakScalarD only on that branch; other branches
+        # leave it unset, so a blank cell means "not a weak-scalar run".
+        if alg_sel.get("weakScalarD") is not None:
+            out["fabrication_ec_scalar"] = alg_sel.get("weakScalarD")
     if flags:
         out["fabrication_flags"] = flags
     return out
@@ -769,6 +776,7 @@ def flatten_experiment_columns(params: dict | None, *, rp_id: str, label: str = 
         "fab_rsa_n_bits": _cell(fab.get("fabrication_rsa_modulus_bits")),
         "fab_key_source": _cell(fab.get("fabrication_key_source")),
         "fab_key_leak_origin": _cell(fab.get("fabrication_key_leak_origin")),
+        "fab_ec_scalar": _cell(fab.get("fabrication_ec_scalar")),
         "fab_flags": _flags_cell(fab.get("fabrication_flags")),
         "fab_outcome": _outcome_cell(fab),
         "srv_endpoint": _cell(srv.get("endpoint")),

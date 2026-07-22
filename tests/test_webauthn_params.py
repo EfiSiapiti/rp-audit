@@ -148,6 +148,32 @@ class TestExtractAdvertised(unittest.TestCase):
         self.assertEqual(cells["fab_rsa_e"], "")       # blank: not an RSA run
         self.assertEqual(cells["fab_outcome"], "fabricated")
 
+    def test_fabrication_weak_scalar(self):
+        # Weak-scalar control (weak-scalar-test): the hook presents an ES256 key
+        # whose private scalar is a small known value d (public key Q=d*G).
+        # fabrication.algSelection carries weakScalarD, which surfaces as
+        # fab_ec_scalar in the experiment row. The key is a conformant P-256 key,
+        # so fab_alg stays ES256 and the RSA/leaked cells stay blank.
+        observer_log = [
+            _create_called(SAMPLE_OPTIONS),
+            {"eventType": "fabrication.algSelection", "payload": {
+                "fabricationAlg": "ES256", "coseAlg": -7, "algInPubKeyCredParams": True,
+                "weakScalarD": 2}},
+            {"eventType": "fabrication.flags", "payload": {
+                "op": "create", "flags": {"UP": True, "UV": True, "AT": True}}},
+            {"eventType": "fabrication.success", "payload": {"rpId": "example.com"}},
+        ]
+        rec = webauthn_params.extract_advertised(observer_log)
+        fab = rec["fabrication"]
+        self.assertEqual(fab["fabrication_ec_scalar"], 2)
+        cells = webauthn_params.flatten_experiment_columns(rec, rp_id="example.com", label="weak-scalar-test")
+        self.assertEqual(cells["label"], "weak-scalar-test")
+        self.assertEqual(cells["fab_alg"], "ES256(-7)")
+        self.assertEqual(cells["fab_ec_scalar"], "2")
+        self.assertEqual(cells["fab_rsa_e"], "")        # blank: not an RSA run
+        self.assertEqual(cells["fab_key_source"], "")   # blank: not a leaked-key run
+        self.assertEqual(cells["fab_outcome"], "fabricated")
+
     def test_outcome_create_failed(self):
         observer_log = [
             _create_called(SAMPLE_OPTIONS),
