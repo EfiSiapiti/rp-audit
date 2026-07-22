@@ -317,9 +317,9 @@ Columns: `captured_at, rp_id, label`, then
   returned a credential; `create-failed:<Error>` = the browser rejected it);
 - **`srv_*` — what the *server* said back:** the finish request/response located on the wire
   (matched by the returned credId), giving `srv_endpoint`, `srv_status`, `srv_result`
-  (`accepted` / `accepted?` / `rejected` / `rejected?`), and `srv_message` (a body snippet — the
-  ground truth, since some RPs return HTTP 200 with an error body, and Meta's XSSI prefix is
-  stripped);
+  (`accepted` / `rejected` / `not-captured` / `to be confirmed by human`), and `srv_message`
+  (a body snippet — the ground truth, since some RPs return HTTP 200 with an error body, and
+  Meta's XSSI prefix is stripped);
 - `artifact` — the run's artifact dir.
 
 Each experiment row tells the whole story: **advertised (via `adv_rp_id`) → selected → server
@@ -369,7 +369,7 @@ python -m src.hook.run --rp <rp> --label leaked-key-test
 ```
 
 Read `srv_result`: `accepted` = the RP registered a credential whose private key is public (the
-finding); `rejected`/`rejected?` = the RP refused it.
+finding); `rejected` = the RP refused it.
 
 #### Control 3 — re-register a revoked credential (`REUSE_EXISTING_ON_CREATE`)
 
@@ -392,9 +392,9 @@ is needed):
 3. Set `REUSE_EXISTING_ON_CREATE = true` → **reload the extension → reload the RP page**.
 4. `python -m src.hook.run --rp <rp> --label revoked-reregister` → the hook replays the same
    `credId`. Keep the tab open, press Enter.
-5. Read `srv_result` in `data/experiments.csv`: `rejected`/`rejected?` = RP tracks the revoked
-   credential (enforced); `accepted` = RP re-accepts it (the finding). Confirm the revoke actually
-   took effect first — an `accepted` only counts if the credential was truly removed beforehand.
+5. Read `srv_result` in `data/experiments.csv`: `rejected` = RP tracks the revoked credential
+   (enforced); `accepted` = RP re-accepts it (the finding). Confirm the revoke actually took
+   effect first — an `accepted` only counts if the credential was truly removed beforehand.
 
 > ⚠ **Switch it back.** While `REUSE_EXISTING_ON_CREATE = true`, an RP that already has a stored
 > key will **always** replay it, silently ignoring any new `FABRICATION_ALG`/`AAGUID`/flag

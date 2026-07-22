@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from src.lib import ledger
 from src.lib.parse import _sniff_delimiter
 
 
@@ -348,6 +349,38 @@ def _find_last_post(requests: list, markers: list) -> dict | None:
     return found
 
 
+def _accept_from_echo(cred_ids: list, echoed: str, echoed_resp: dict) -> dict:
+    """Build an 'accepted' verdict from a response that proves credential
+    storage (credId echo, or an enabled/active credential record) — used
+    whether or not a finish request/response was itself identifiable."""
+    hit = next((c for c in cred_ids if c in echoed), None)
+    msg = _snippet_around(echoed, hit) if hit else _shorten(echoed)
+    return {"endpoint": _path(echoed_resp.get("url", "")),
+            "status": echoed_resp.get("status"),
+            "result": "accepted", "message": msg}
+
+
+def _find_known_finish(requests: list, known_endpoint: str) -> dict | None:
+    """Find the finish POST by a previously-approved endpoint label (see
+    ledger.set_known_endpoint) instead of guessing from body markers. The
+    label is the exact "<path> (<friendly_name>)" / "<path>" string recorded
+    from an earlier run's srv_endpoint. Last match wins, same as
+    _find_last_post."""
+    found = None
+    for r in requests:
+        try:
+            if r.get("method") != "POST":
+                continue
+            url = r.get("url", "")
+            if _NON_FINISH_URL.search(url):
+                continue
+            if _endpoint_label(url, r) == known_endpoint:
+                found = r
+        except Exception:
+            continue
+    return found
+
+
 def _friendly_name(req: dict) -> str | None:
     """Meta tags GraphQL POSTs with fb_api_req_friendly_name — surface it so the
     endpoint cell is meaningful when every call goes to /api/graphql/."""
@@ -357,6 +390,14 @@ def _friendly_name(req: dict) -> str | None:
     if i == -1:
         return None
     return pd[i + len(marker):].split("&", 1)[0][:60] or None
+
+
+def _endpoint_label(url: str, req: dict) -> str:
+    """The "<path> (<friendly_name>)" / "<path>" label used both to display
+    srv_endpoint and, once approved, to match a known endpoint on later runs
+    (see ledger.set_known_endpoint)."""
+    fn = _friendly_name(req)
+    return _path(url) + (f" ({fn})" if fn else "")
 
 
 # Registration begin/options endpoints — where the ceremony is set up (a challenge
@@ -409,27 +450,13 @@ def _looks_like_begin(body: str) -> bool:
     return '"challenge"' in n and "pubkeycredparams" in n
 
 
-def _server_verdict(requests: list, responses: list, cred_ids: list | None = None) -> dict:
-    """Find the registration *finish* request/response and summarize the verdict.
-
-    The finish request is the POST whose body carries the new credential. RPs
-    echo the credential id back, so we match on any fabricated credId first
-    (works even when the attestation is base64-wrapped, as Meta does under
-    `credential_id`/`payload`), then fall back to standard field names. The
-    response is paired by position among same-URL calls (robust for the many
-    same-second GraphQL POSTs). Acceptance can't be read from HTTP status alone
-    (some RPs return 200 with an error body), so we record status, a body
-    snippet (ground truth), and a best-effort guess. Never raises.
-    """
-    cred_ids = [c for c in (cred_ids or []) if c]
-
-    # Proof of storage from ANY captured response, independent of identifying the
-    # finish *request*: our fabricated credId echoed back, or an enabled/active
-    # webauthn credential record. This is what lets opaque RPC flows (Google's
-    # batchexecute, which base64-wraps the whole credential) still resolve to
-    # accepted — there's no matchable finish POST, but the response proves storage.
-    echoed = None
-    echoed_resp = None
+def _find_echo(responses: list, cred_ids: list) -> tuple[str | None, dict | None]:
+    """Proof of storage from ANY captured response, independent of identifying
+    the finish *request*: our fabricated credId echoed back, or an
+    enabled/active webauthn credential record. This is what lets opaque RPC
+    flows (Google's batchexecute, which base64-wraps the whole credential)
+    still resolve to accepted — there's no matchable finish POST, but the
+    response proves storage. Returns (body, response) or (None, None)."""
     for x in responses:
         b = _strip_xssi(x.get("body") or "")
         if not b:
@@ -439,50 +466,50 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
             s in bn for s in ('"status":"enabled"', '"status":"active"', '"status":"registered"')
         )
         if any(c in b for c in cred_ids) or enabled_cred:
-            echoed, echoed_resp = b, x
-            break
+            return b, x
+    return None, None
 
-    # Prefer a credId match (strong evidence); fall back to field-name markers.
-    # `webauthn.create` is the clientDataJSON type and appears in any registration
-    # finish body (e.g. Salesforce VaaS sends the attestation under data.attestation
-    # with type webauthn.create — no literal "attestationObject").
-    # Prefer the POST that actually submits the WebAuthn credential (carries the
-    # attestation / publicKeyCredentialJson) over a bare credId echo. Some flows
-    # echo the credId in a *navigation* POST that isn't the finish (Microsoft's
-    # /proofs/Manage/additional), while the real finish (/ProvisionPasskey) wraps
-    # the credential so the literal credId isn't present — matching credId-first
-    # there locked onto the wrong POST and read an unrelated 200 as 'accepted'.
-    # Fall back to a credId match for RPs that base64-wrap the whole attestation
-    # with no literal field names (Meta under credential_id/payload).
-    finish = _find_last_post(
+
+def _find_finish(requests: list, cred_ids: list, known_endpoint: str | None) -> dict | None:
+    """Identify the finish request: an approved known_endpoint match first (a
+    confirmed match, not a guess — see ledger.set_known_endpoint), then a
+    credId match (strong evidence, works even when the attestation is
+    base64-wrapped, as Meta does under `credential_id`/`payload`), else the
+    field-name markers of a WebAuthn finish body.
+
+    Field-name markers are tried before a bare credId match: some flows echo
+    the credId in a *navigation* POST that isn't the finish (Microsoft's
+    /proofs/Manage/additional), while the real finish (/ProvisionPasskey)
+    wraps the credential so the literal credId isn't present — matching
+    credId-first there locked onto the wrong POST and read an unrelated 200
+    as 'accepted'. `webauthn.create` (the clientDataJSON type) is included
+    since it appears in any registration finish body even without a literal
+    `attestationObject` (Salesforce VaaS wraps it under data.attestation).
+    """
+    if known_endpoint:
+        finish = _find_known_finish(requests, known_endpoint)
+        if finish is not None:
+            return finish
+    return _find_last_post(
         requests, ["credential_id", "attestationObject", "attestation_object",
                    '"rawId"', "authenticatorAttachment", "webauthn.create",
                    '"attestation":"', "publicKeyCredentialJson"]
     ) or _find_last_post(requests, cred_ids)
-    if finish is None:
-        # No identifiable finish request (e.g. Google's opaque batchexecute RPC).
-        # If a response still proves the credential was stored, it's accepted.
-        if echoed is not None:
-            hit = next((c for c in cred_ids if c in echoed), None)
-            msg = _snippet_around(echoed, hit) if hit else _shorten(echoed)
-            return {"endpoint": _path(echoed_resp.get("url", "")),
-                    "status": echoed_resp.get("status"),
-                    "result": "accepted", "message": msg}
-        # No finish request — but the RP may have refused the ceremony at the
-        # begin/options step (an auth gate). That's a rejection, not a miss.
-        denial = _begin_denial(requests, responses)
-        if denial is not None:
-            return denial
-        return {}
 
-    url = finish.get("url", "")
-    # Pair by position: the k-th request to this URL → the k-th response. run.py
-    # records both in arrival order, so this aligns begin/finish even when an RP
-    # serves both as POSTs to one URL (e.g. eBay). Crucially, do NOT borrow a
-    # different same-URL response when the finish's own response is missing — that
-    # once paired a finish to the begin's 200 and reported a false 'accepted'
-    # (Nintendo, GET begin + POST finish, finish response never captured). If it
-    # isn't there, resp stays None → not-captured below.
+
+def _paired_response(requests: list, responses: list, finish: dict, url: str) -> dict | None:
+    """The response paired with `finish` by position: the k-th request to this
+    URL -> the k-th response. run.py records both in arrival order, so this
+    aligns begin/finish even when an RP serves both as POSTs to one URL (e.g.
+    eBay). Crucially, this does NOT borrow a different same-URL response when
+    the finish's own response is missing — that once paired a finish to the
+    begin's 200 and reported a false 'accepted' (Nintendo, GET begin + POST
+    finish, finish response never captured).
+
+    Also guards the aligned-but-wrong case: if the paired response is itself a
+    begin/options payload (challenge + params, no verdict), that's not a
+    finish result — returns None rather than reading acceptance from it.
+    """
     reqs_u = [r for r in requests if r.get("url") == url]
     resps_u = [x for x in responses if x.get("url") == url]
     try:
@@ -490,32 +517,16 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
     except ValueError:
         pos = len(reqs_u) - 1
     resp = resps_u[pos] if 0 <= pos < len(resps_u) else None
-
-    # Safety net for the aligned-but-wrong case: if the paired response is actually
-    # a registration begin/options payload (challenge + params, no verdict), it is
-    # not a finish result — don't read acceptance from it.
     if resp is not None and _looks_like_begin(resp.get("body") or ""):
-        resp = None
+        return None
+    return resp
 
-    # The finish request matched but its own response wasn't captured. Don't infer
-    # an outcome from an unrelated response. If some response echoed our credId,
-    # storage is proven (accepted); otherwise report not-captured rather than guess.
-    if resp is None:
-        if echoed:
-            hit = next((c for c in cred_ids if c in echoed), None)
-            msg = _snippet_around(echoed, hit) if hit else _shorten(echoed)
-            return {"endpoint": _path(echoed_resp.get("url", "")),
-                    "status": echoed_resp.get("status"),
-                    "result": "accepted", "message": msg}
-        fn = _friendly_name(finish)
-        endpoint = _path(url) + (f" ({fn})" if fn else "")
-        return {"endpoint": endpoint, "status": None,
-                "result": "not-captured", "message": ""}
 
-    status = resp.get("status") if resp else None
-    clean = _strip_xssi((resp.get("body") if resp else "") or "")
-    snippet = _shorten(clean)
-
+def _classify_result(status: int | None, clean: str, requests: list, responses: list,
+                     echoed: str | None) -> str:
+    """The verdict, in priority order — each branch a confident call, no
+    "maybe" states. Anything left over at the end has no interpretable
+    signal, so it's flagged for human review rather than guessed."""
     low = clean.lower()
     norm = "".join(low.split())  # whitespace-insensitive for "error": false etc.
     # Explicit positive acceptance markers seen across RPs' finish responses.
@@ -532,15 +543,10 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
     error_marker = (any(m in norm for m in _ERROR_MARKERS)
                     or bool(_ERROR_OBJECT.search(norm))
                     or any(p in low for p in _ERROR_PHRASES))
-
-    # (`echoed` — proof of a stored credential in any response — is computed above,
-    # since it must work even when no finish request is matched.)
-
     # A 2xx finish response with an empty or trivial ({}/[]) body is a success
     # with nothing to report — common for /register/complete style endpoints
     # (Indeed returns empty, Ticketmaster returns {}).
     empty_2xx = status is not None and 200 <= status < 300 and clean.strip() in ("", "{}", "[]")
-
     # Redirect-to-success: some flows finish with a 3xx to a success URL (Auth0:
     # POST /u/mfa-webauthn-enrollment → 302 → /u/mfa-webauthn-enrollment-success).
     # A captured URL that pairs a webauthn/enrollment token with a success token
@@ -549,32 +555,70 @@ def _server_verdict(requests: list, responses: list, cred_ids: list | None = Non
         _SUCCESS_URL.search(x.get("url") or "") for x in (requests + responses)
     )
 
-    if status is None:
-        result = "unknown"
-    elif status >= 400:
-        result = "rejected"                      # hard HTTP failure
-    elif accepted_marker or echoed or empty_2xx or success_url:
-        result = "accepted"                      # success marker / stored credId / empty 2xx / success redirect
-    elif error_marker:
-        result = "rejected?"                     # a real negative marker in the body
-    elif 200 <= status < 300:
-        # The finish POST succeeded (2xx) and the body carries no rejection
-        # signal — standard REST semantics: the RP stored the credential. RPs
-        # return varied confirmations here (Dropbox's serialized_device_gid,
-        # etc.); a 2xx without an error is an acceptance.
-        result = "accepted"
-    else:
-        result = "accepted?"                     # non-2xx (e.g. 3xx) with no signal
+    if status is not None and status >= 400:
+        return "rejected"                      # hard HTTP failure
+    if accepted_marker or echoed or empty_2xx or success_url:
+        return "accepted"                      # success marker / stored credId / empty 2xx / success redirect
+    if error_marker:
+        # e.g. GraphQL 200 + error payload — a real rejection, not a status code
+        return "rejected"
+    if status is not None and 200 <= status < 300:
+        # 2xx with no rejection signal — standard REST semantics: the RP stored
+        # the credential. RPs return varied confirmations here (Dropbox's
+        # serialized_device_gid, etc.); a 2xx without an error is an acceptance.
+        return "accepted"
+    return "to be confirmed by human"          # no status, or e.g. a bare 3xx with no signal either way
+
+
+def _server_verdict(requests: list, responses: list, cred_ids: list | None = None,
+                    known_endpoint: str | None = None) -> dict:
+    """Find the registration *finish* request/response and summarize the verdict.
+
+    Four steps: find proof of storage from any response (_find_echo), identify
+    the finish request (_find_finish), pair it with its response
+    (_paired_response), then classify (_classify_result). Acceptance can't be
+    read from HTTP status alone (some RPs return 200 with an error body), so
+    the result carries status + a body snippet (ground truth) alongside the
+    verdict. Never raises.
+    """
+    cred_ids = [c for c in (cred_ids or []) if c]
+    echoed, echoed_resp = _find_echo(responses, cred_ids)
+
+    finish = _find_finish(requests, cred_ids, known_endpoint)
+    if finish is None:
+        # No identifiable finish request (e.g. Google's opaque batchexecute RPC).
+        if echoed is not None:
+            return _accept_from_echo(cred_ids, echoed, echoed_resp)
+        # No finish request — but the RP may have refused the ceremony at the
+        # begin/options step (an auth gate). That's a rejection, not a miss.
+        return _begin_denial(requests, responses) or {}
+
+    url = finish.get("url", "")
+    resp = _paired_response(requests, responses, finish, url)
+
+    # The finish request matched but its own response wasn't captured (or was
+    # a begin/options payload, not a real verdict). Don't infer an outcome
+    # from an unrelated response — an echo still proves storage; otherwise
+    # report not-captured rather than guess.
+    if resp is None:
+        if echoed:
+            return _accept_from_echo(cred_ids, echoed, echoed_resp)
+        return {"endpoint": _endpoint_label(url, finish), "status": None,
+                "result": "not-captured", "message": ""}
+
+    status = resp.get("status")
+    clean = _strip_xssi(resp.get("body") or "")
+    result = _classify_result(status, clean, requests, responses, echoed)
 
     # When acceptance came from an echo and the matched finish body was empty or
     # uninformative, show the credId in context (the proof) as the message.
+    snippet = _shorten(clean)
     if echoed and snippet in ("", "{}", "[]"):
         hit = next((c for c in cred_ids if c in echoed), None)
         snippet = _snippet_around(echoed, hit)
 
-    fn = _friendly_name(finish)
-    endpoint = _path(url) + (f" ({fn})" if fn else "")
-    return {"endpoint": endpoint, "status": status, "result": result, "message": snippet}
+    return {"endpoint": _endpoint_label(url, finish), "status": status,
+            "result": result, "message": snippet}
 
 
 def _strip_xssi(body: str) -> str:
@@ -644,7 +688,7 @@ def _server_algs_from_network(webauthn_network: Any) -> list | None:
 
 
 def extract_advertised(observer_log: Any, network: Any = None,
-                       since_iso: str | None = None) -> dict | None:
+                       since_iso: str | None = None, rp_id: str | None = None) -> dict | None:
     """Normalize one ceremony into a flat record with three parts: what the RP
     advertised, what credential was selected/returned, and the server's verdict.
 
@@ -652,6 +696,8 @@ def extract_advertised(observer_log: Any, network: Any = None,
     `network` is run.py's {"requests", "responses"} dict (or the older flat list).
     `since_iso` scopes the (accumulated, cross-run) observer log to this run — pass
     the run's start time so stale ceremonies from earlier RPs are excluded.
+    `rp_id`, if given, looks up an approved finish endpoint (see
+    ledger.set_known_endpoint) to match directly instead of guessing.
     """
     since = _parse_ts(since_iso) if since_iso else None
     if since is not None:
@@ -691,8 +737,10 @@ def extract_advertised(observer_log: Any, network: Any = None,
     record["fabrication"] = fab
 
     # (3) The server's verdict on the finish/registration request.
+    known_endpoint = ledger.get_known_endpoint(rp_id) if rp_id else None
     server = _server_verdict(
-        requests, responses, fab.get("cred_ids") or [fab.get("cred_id")]
+        requests, responses, fab.get("cred_ids") or [fab.get("cred_id")],
+        known_endpoint=known_endpoint,
     )
     # The browser fabricated a credential but the finish request/response wasn't
     # in the network capture (run.py wasn't attached to the ceremony tab when it

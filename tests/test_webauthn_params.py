@@ -210,11 +210,11 @@ class TestExtractAdvertised(unittest.TestCase):
         srv = rec["server"]
         self.assertEqual(srv["endpoint"], "/api/graphql/")
         self.assertEqual(srv["status"], 200)
-        self.assertEqual(srv["result"], "rejected?")  # 200 but error body
+        self.assertEqual(srv["result"], "rejected")  # 200 but explicit error body
         self.assertIn("AAGUID mismatch", srv["message"])
         cells = webauthn_params.flatten_experiment_columns(rec, rp_id="example.com")
         self.assertEqual(cells["srv_status"], "200")
-        self.assertEqual(cells["srv_result"], "rejected?")
+        self.assertEqual(cells["srv_result"], "rejected")
         self.assertIn("AAGUID mismatch", cells["srv_message"])
 
     def test_server_verdict_accepted(self):
@@ -443,8 +443,8 @@ class TestExtractAdvertised(unittest.TestCase):
         self.assertEqual(cells["fab_outcome"], "reused")
 
     def test_server_verdict_credid_echo(self):
-        # Canva-style: finish response empty (→ accepted?), but a later profile
-        # query echoes the fabricated credId → confident "accepted".
+        # Canva-style: finish response is empty, but a later profile query echoes
+        # the fabricated credId → confident "accepted" via the echo, not a guess.
         cred = "w37nkCKa80KvCanvaCred"
         observer_log = [_create_called(SAMPLE_OPTIONS),
                         {"eventType": "fabrication.success", "payload": {"credId": cred}}]
@@ -462,8 +462,24 @@ class TestExtractAdvertised(unittest.TestCase):
         }
         rec = webauthn_params.extract_advertised(observer_log, network)
         srv = rec["server"]
-        self.assertEqual(srv["result"], "accepted")           # upgraded from accepted? by the echo
+        self.assertEqual(srv["result"], "accepted")
         self.assertIn("webauthnCredentials", srv["message"])  # evidence body used when finish empty
+
+    def test_server_verdict_ambiguous_redirect_flagged_for_human(self):
+        # A 3xx finish response with no success-URL match, no error marker, and
+        # no echoed credId — genuinely no signal either way, so this must not be
+        # guessed as accepted or rejected.
+        cred = "ambigCred1"
+        observer_log = [_create_called(SAMPLE_OPTIONS),
+                        {"eventType": "fabrication.success", "payload": {"credId": cred}}]
+        network = {
+            "requests": [{"method": "POST", "url": "https://rp.example/webauthn/finish",
+                          "post_data": '{"credential_id":"%s"}' % cred, "ts": "20260706T100000Z"}],
+            "responses": [{"url": "https://rp.example/webauthn/finish", "status": 302,
+                           "body": "", "ts": "20260706T100000Z"}],
+        }
+        rec = webauthn_params.extract_advertised(observer_log, network)
+        self.assertEqual(rec["server"]["result"], "to be confirmed by human")
 
 
 class TestFlatten(unittest.TestCase):

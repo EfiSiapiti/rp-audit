@@ -487,6 +487,7 @@ async def main():
                 captured.get("observer_log"),
                 {"requests": captured.get("requests"), "responses": captured.get("responses")},
                 since_iso=run_started_iso,
+                rp_id=args.rp,
             )
             if params:
                 ledger.record_advertised_params(

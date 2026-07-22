@@ -161,6 +161,33 @@ def record_advertised_params(rp_id: str, params: dict, *, artifact: str = "") ->
     save(led)
 
 
+def set_known_endpoint(rp_id: str, endpoint: str) -> None:
+    """Record the confirmed WebAuthn 'finish' endpoint label for an RP (the
+    exact srv_endpoint string from data/experiments.csv, e.g.
+    "/api/graphql/ (useCreatePasskeyMutation)"). Once set, webauthn_params
+    matches this endpoint directly on future hook runs instead of guessing
+    from response-body markers. State-neutral; creates a stub entry if the
+    rp_id is absent, same as record_advertised_params.
+    """
+    led = load()
+    entries = led.setdefault("entries", {})
+    entry = entries.get(rp_id)
+    if entry is None:
+        entry = entries[rp_id] = {
+            "rp_id": rp_id,
+            "state": "pending",
+            "history": [{"at": _now(), "state": "pending", "note": "auto-created for known-endpoint"}],
+            "attempts": 0,
+        }
+    entry["known_finish_endpoint"] = endpoint
+    save(led)
+
+
+def get_known_endpoint(rp_id: str) -> str | None:
+    """The confirmed finish-endpoint label for an RP, or None if not yet set."""
+    return load().get("entries", {}).get(rp_id, {}).get("known_finish_endpoint")
+
+
 def increment_attempts(ledger: dict, rp_id: str) -> int:
     entry = ledger["entries"][rp_id]
     entry["attempts"] = entry.get("attempts", 0) + 1
