@@ -13,7 +13,7 @@ from __future__ import annotations
 
 # --- canonical state sets -------------------------------------------------
 
-# The agent succeeded and we have a session.
+# The agent succeeded and the account exists in its authenticated browser profile.
 SUCCESS = {"captured"}
 
 # Done — never worth an automatic second pass. A human can still --force a requeue.

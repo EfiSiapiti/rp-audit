@@ -6,18 +6,16 @@ stuck on a spinning "Are you human?" that never resolves. This opens the site in
 a normal Chrome that *you* launched — no automation switches, sandbox on, its own
 clean profile — so you have the best shot at getting through the CAPTCHA by hand.
 
-Playwright is used only at the very end, and only to *read* the resulting session
-over CDP (the browser is never Playwright-controlled during signup), so the
-capture lands in the same sessions/<rp>.json shape as the rest of the pipeline.
+Playwright is used only at the very end, and only to grab an evidence screenshot
+over CDP (the browser is never Playwright-controlled during signup).
 
 Flow, per RP:
 1. Launches your system Chrome via subprocess with a dedicated per-RP profile
    under browser-profiles-manual/<rp_id> and --remote-debugging-port.
 2. You drive the signup by hand and solve any CAPTCHA.
-3. Press Enter, type the outcome. On `captured` it connects over CDP and captures
-   cookies + localStorage + sessionStorage + IndexedDB to sessions/<rp>.json;
-   every outcome is recorded across the ledger, an artifact, and the batch log
-   (source=manual-chrome), with a best-effort evidence screenshot.
+3. Press Enter, type the outcome. Every outcome is recorded across the ledger,
+   an artifact, and the batch log (source=manual-chrome), with a best-effort
+   evidence screenshot grabbed over CDP.
 
 Usage:
     python -m scripts.manual_launch --rp discord.com
@@ -46,11 +44,10 @@ from urllib.parse import urlparse
 
 from playwright.async_api import async_playwright
 
-from scripts.capture_session import _cookie_count, _origin_for
-from src.lib import idb
 from src.lib import ledger
 from src.lib import outcomes
 from src.lib import run_record
+from src.lib.ledger import origin_for
 
 # Kept separate from the Playwright profiles (browser-profiles/) on purpose: a
 # fresh, automation-free profile is the whole point of this path.
@@ -64,7 +61,7 @@ def _now() -> str:
 
 def _default_note(outcome: str) -> str:
     if outcome == "captured":
-        return "manually created in real Chrome, session captured"
+        return "manually created in real Chrome"
     return f"manually recorded (real Chrome): {outcome}"
 
 
@@ -160,59 +157,40 @@ def _pick_page(ctx, origin: str):
     return None
 
 
-async def _grab(rp_id: str, origin: str, cdp_url: str, *, capture_session: bool
-                ) -> tuple[int | None, str | None]:
-    """Connect over CDP to take an evidence screenshot and (optionally) capture
-    the session. Returns (cookie_count_or_None, screenshot_path_or_None).
+async def _grab(rp_id: str, origin: str, cdp_url: str) -> str | None:
+    """Connect over CDP to take an evidence screenshot. Returns the screenshot
+    path, or None.
 
     Never closes the real Chrome — it just disconnects when the block exits.
     """
     art_dir = Path("artifacts") / rp_id
     art_dir.mkdir(parents=True, exist_ok=True)
-    cookie_n: int | None = None
     shot: str | None = None
 
     async with async_playwright() as pw:
         try:
             browser = await pw.chromium.connect_over_cdp(cdp_url)
         except Exception as e:
-            print(f"  ⚠ could not connect over CDP to read the session: {e}")
-            return None, None
+            print(f"  ⚠ could not connect over CDP for the evidence screenshot: {e}")
+            return None
         ctx = browser.contexts[0] if browser.contexts else await browser.new_context()
         page = _pick_page(ctx, origin)
 
         if page is not None:
             try:
-                shot = str(art_dir / f"{_now()}-{'capture' if capture_session else 'evidence'}.png")
+                shot = str(art_dir / f"{_now()}-evidence.png")
                 await page.screenshot(path=shot, full_page=True)
                 print(f"  ✓ wrote {shot}")
             except Exception as e:
                 print(f"  ⚠ screenshot failed (continuing): {e}")
                 shot = None
-
-        if capture_session:
-            Path("sessions").mkdir(parents=True, exist_ok=True)
-            sp = Path(f"sessions/{rp_id}.json")
-            try:
-                await ctx.storage_state(path=str(sp))
-                if page is not None:
-                    try:
-                        summary = await idb.augment_session_file(page, sp)
-                        if summary:
-                            print(f"  ({summary})")
-                    except Exception:
-                        pass
-                cookie_n = _cookie_count(sp)
-            except Exception as e:
-                print(f"  ⚠ session capture failed: {e}")
-                cookie_n = 0
-    return cookie_n, shot
+    return shot
 
 
 # --- recording (three tiers, mirrors manual_signup) -----------------------
 
 def _record(rp_id: str, outcome: str, note: str, *, origin: str, started: str,
-            session_path: Path | None, artifacts: list[str], cookie_n: int | None) -> None:
+            artifacts: list[str]) -> None:
     led = ledger.load()
     entry = led.get("entries", {}).get(rp_id, {})
     signup_url = entry.get("signup_url") or entry.get("canonical_origin") or origin
@@ -221,8 +199,6 @@ def _record(rp_id: str, outcome: str, note: str, *, origin: str, started: str,
     if rp_id in led.get("entries", {}):
         attempts = ledger.increment_attempts(led, rp_id)
         extra = {"signup_url": signup_url, "source": SOURCE}
-        if session_path:
-            extra["session_path"] = str(session_path)
         ledger.update_state(led, rp_id, outcome, note=note, extra=extra)
         print(f"  ✓ ledger {rp_id} → {outcome}")
     else:
@@ -240,10 +216,6 @@ def _record(rp_id: str, outcome: str, note: str, *, origin: str, started: str,
         "signup_url": signup_url,
         "source": SOURCE,
     }
-    if session_path:
-        result["session_path"] = str(session_path)
-    if cookie_n is not None:
-        result["cookies"] = cookie_n
     result_path = art_dir / f"{_now()}-result.json"
     with open(result_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, default=str)
@@ -269,7 +241,7 @@ def _prompt_outcome(rp_id: str) -> str | None:
 # --- per-RP + batch driver ------------------------------------------------
 
 async def _process_one(chrome: str, rp_id: str, port_pref: int) -> str | None:
-    origin = _origin_for(rp_id)
+    origin = origin_for(rp_id)
     started = _now()
     port = _free_port(port_pref)
     profile_dir = MANUAL_PROFILES_ROOT / rp_id
@@ -290,21 +262,10 @@ async def _process_one(chrome: str, rp_id: str, port_pref: int) -> str | None:
         note = raw or _default_note(outcome)
 
         cdp_url = f"http://127.0.0.1:{port}"
-        want_session = outcome == "captured"
-        cookie_n, shot = await _grab(rp_id, origin, cdp_url, capture_session=want_session)
-
-        session_path: Path | None = None
-        if want_session:
-            if not cookie_n:
-                print(f"  ⚠ sessions/{rp_id}.json has no cookies — NOT recording as "
-                      f"captured; ledger left unchanged. Make sure you're logged in, then rerun.")
-                return None
-            session_path = Path(f"sessions/{rp_id}.json")
-            print(f"  ✓ wrote {session_path} ({cookie_n} cookie(s))")
+        shot = await _grab(rp_id, origin, cdp_url)
 
         artifacts = [shot] if shot else []
-        _record(rp_id, outcome, note, origin=origin, started=started,
-                session_path=session_path, artifacts=artifacts, cookie_n=cookie_n)
+        _record(rp_id, outcome, note, origin=origin, started=started, artifacts=artifacts)
         return outcome
     finally:
         try:

@@ -10,21 +10,16 @@ Setup (one-time):
 
 What this script does:
 1. Connects to your already-running Chrome via CDP (no launch)
-2. Optionally restores cookies + localStorage from sessions/<rp>.json
-3. Optionally navigates the active page to --enroll-url
-4. Captures network + console traffic on the active page
-5. Waits — you drive the passkey registration manually
-6. On Enter, dumps captured traffic to artifacts
+2. Optionally navigates the active page to --enroll-url
+3. Captures network + console traffic on the active page
+4. Waits — you drive the passkey registration manually (already logged in,
+   since this is your own long-running Chrome profile)
+5. On Enter, dumps captured traffic to artifacts
 
 Usage:
     python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-account
-    python -m src.hook.run --rp notion.so --no-restore    # skip session injection
-    python -m src.hook.run --rp notion.so --no-localstorage  # cookies only
 
 Notes:
-- Restored sessions are written into your live Chrome profile, so they
-  persist after the script exits. You only need --restore once per RP;
-  subsequent runs can use --no-restore.
 - This means real Chrome fingerprint, no CAPTCHA hell, no Playwright contamination.
 """
 
@@ -44,7 +39,7 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright, Page, Request, Response, BrowserContext
 
-from src.lib import idb, ledger, webauthn_params
+from src.lib import ledger, webauthn_params
 
 
 load_dotenv()
@@ -71,72 +66,6 @@ _MAX_BODY_BYTES = 512 * 1024  # 512 KB
 
 def _ts() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
-
-async def _restore_cookies(ctx: BrowserContext, state: dict) -> int:
-    """Inject cookies from a storageState dict. Returns count injected."""
-    cookies = state.get("cookies", [])
-    if not cookies:
-        return 0
-    await ctx.add_cookies(cookies)
-    return len(cookies)
-
-
-async def _hydrate_storage_for_origin(page: Page, state: dict, origin: str) -> int:
-    """For the given origin, inject any saved localStorage entries.
-
-    Returns number of entries injected. localStorage is per-origin, so
-    we can only hydrate after page.goto has loaded a page on that origin.
-    """
-    matching = [o for o in state.get("origins", []) if o.get("origin") == origin]
-    if not matching:
-        return 0
-    items = matching[0].get("localStorage", [])
-    if not items:
-        return 0
-    await page.evaluate("""
-        (items) => {
-            for (const it of items) {
-                try { localStorage.setItem(it.name, it.value); } catch (e) {}
-            }
-        }
-    """, items)
-    return len(items)
-
-
-async def _hydrate_sessionstorage_for_origin(page: Page, state: dict, origin: str) -> int:
-    """Restore sessionStorage captured for `origin` into the live page.
-
-    Mirrors _hydrate_storage_for_origin. Some RPs (e.g. Bitwarden's web vault)
-    keep their auth token + crypto keys in sessionStorage, which storage_state
-    never captured; the session file carries them under a top-level
-    `sessionStorage` map keyed by origin (see src/lib/idb.py). Returns the
-    number of items written.
-    """
-    ss_map = state.get("sessionStorage")
-    if not isinstance(ss_map, dict):
-        return 0
-    items = ss_map.get(origin)
-    if not items:
-        return 0
-    return await idb.restore_sessionstorage(page, items)
-
-
-async def _hydrate_indexeddb_for_origin(page: Page, state: dict, origin: str) -> int:
-    """Restore IndexedDB databases captured for `origin` into the live page.
-
-    Mirrors _hydrate_storage_for_origin: IndexedDB is per-origin, so this can
-    only run after a page on that origin has loaded. The session file carries
-    the data under a top-level `indexedDB` map keyed by origin (see
-    src/lib/idb.py). Returns the number of records written.
-    """
-    idb_map = state.get("indexedDB")
-    if not isinstance(idb_map, dict):
-        return 0
-    dbs = idb_map.get(origin)
-    if not dbs:
-        return 0
-    return await idb.restore_indexeddb(page, dbs)
 
 
 async def _collect_observer_logs(ctx: BrowserContext) -> list:
@@ -417,11 +346,6 @@ async def main():
                     help=f"Chrome DevTools Protocol URL (default: {DEFAULT_CDP_URL})")
     ap.add_argument("--new-tab", action="store_true",
                     help="open a fresh tab instead of reusing the active one")
-    ap.add_argument("--session", help="override session file (default: sessions/<rp>.json)")
-    ap.add_argument("--no-restore", action="store_true",
-                    help="skip session restoration (use if Chrome profile is already logged in)")
-    ap.add_argument("--no-localstorage", action="store_true",
-                    help="restore cookies only, skip localStorage hydration")
     args = ap.parse_args()
 
     # Anchor for scoping the (accumulated, cross-run) observer log to THIS run —
@@ -429,24 +353,10 @@ async def main():
     run_started_iso = datetime.now(timezone.utc).isoformat()
 
     artifacts_dir = Path(f"artifacts/hook-runs/{args.rp}/{_ts()}")
-    session_path = Path(args.session) if args.session else Path(f"sessions/{args.rp}.json")
 
     print(f"\n→ hook run for {args.rp}")
     print(f"  cdp:       {args.cdp_url}")
-    print(f"  session:   {session_path} ({'will skip' if args.no_restore else 'will restore'})")
     print(f"  artifacts: {artifacts_dir}")
-
-    # Load session up-front so we fail early if it's missing
-    state = None
-    if not args.no_restore:
-        if not session_path.exists():
-            raise SystemExit(
-                f"\n  session not found: {session_path}\n"
-                f"  either pass --no-restore (if Chrome profile is already logged in)\n"
-                f"  or run the signup agent first to capture one"
-            )
-        with open(session_path, "r", encoding="utf-8") as f:
-            state = json.load(f)
 
     async with async_playwright() as pw:
         try:
@@ -470,11 +380,6 @@ async def main():
             print(f"    [webauthn-observer] lines in the tab console during registration.")
         else:
             print(f"  ✓ extension loaded")
-
-        # Restore cookies into the live Chrome profile (persistent across runs)
-        if state is not None:
-            n = await _restore_cookies(ctx, state)
-            print(f"  injected {n} cookies")
 
         # Pick the tab to attach to
         if args.new_tab:
@@ -503,39 +408,13 @@ async def main():
 
         ctx.on("page", _on_new_page)
 
-        # Navigate, then hydrate localStorage for that origin
+        # Navigate to the enroll URL, if given
         if args.enroll_url:
             print(f"  navigating to {args.enroll_url}")
             try:
                 await page.goto(args.enroll_url, wait_until="domcontentloaded", timeout=30_000)
             except Exception as e:
                 print(f"  navigation issue (continuing anyway): {e}")
-
-            if state is not None and not args.no_localstorage:
-                try:
-                    current_origin = await page.evaluate("() => location.origin")
-                    n = await _hydrate_storage_for_origin(page, state, current_origin)
-                    if n:
-                        print(f"  hydrated {n} localStorage entries for {current_origin}")
-                    else:
-                        print(f"  no localStorage entries for {current_origin} in session")
-                    # sessionStorage (e.g. Bitwarden token/crypto keys) and
-                    # IndexedDB (other RPs' tokens) — restored the same way, then
-                    # one reload lets the app pick up all stores.
-                    n_ss = await _hydrate_sessionstorage_for_origin(page, state, current_origin)
-                    if n_ss:
-                        print(f"  hydrated {n_ss} sessionStorage entries for {current_origin}")
-                    n_idb = await _hydrate_indexeddb_for_origin(page, state, current_origin)
-                    if n_idb:
-                        print(f"  hydrated {n_idb} IndexedDB records for {current_origin}")
-                    if n or n_ss or n_idb:
-                        print(f"  reloading to let app pick up storage")
-                        await page.reload()
-                except Exception as e:
-                    print(f"  storage hydration failed: {e}")
-        elif state is not None and not args.no_localstorage:
-            print(f"  ⚠ no --enroll-url given; skipping localStorage hydration")
-            print(f"     (cookies alone are usually enough; navigate manually if needed)")
 
         print()
         print("  ┌" + "─" * 70 + "┐")

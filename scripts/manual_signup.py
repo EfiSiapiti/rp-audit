@@ -18,10 +18,11 @@ actual signup form). Assist, all best-effort and none of it clicking submit:
 
 You still drive multi-step wizards, CAPTCHAs, and the final submit yourself.
 
-Valid outcomes are defined in src/lib/outcomes.py (see _prompt_outcome). For
-`captured` it captures sessions/<rp>.json (and refuses to record an empty
-session). For a blocker you hit by hand (e.g. phone-gated) there's no account
-to save, so it records the outcome plus a best-effort evidence screenshot.
+Valid outcomes are defined in src/lib/outcomes.py (see _prompt_outcome). Every
+outcome — `captured` included — is recorded the same way: ledger state, a
+per-run artifact, and the batch log, plus a best-effort evidence screenshot.
+The account itself stays logged in in its persistent browser profile under
+browser-profiles/<rp_id>.
 
 Usage:
     python -m scripts.manual_signup --batch 10        # next 10 pending RPs
@@ -40,7 +41,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from scripts.capture_session import _origin_for, capture_session_file
 from src.lib import autofill
 from src.lib import browser as browsermod
 from src.lib import consent
@@ -49,6 +49,7 @@ from src.lib import ledger
 from src.lib import outcomes
 from src.lib import page_scan
 from src.lib import run_record
+from src.lib.ledger import origin_for
 
 PENDING_STATES = ("pending", "redo")
 
@@ -59,7 +60,7 @@ def _now() -> str:
 
 def _default_note(outcome: str) -> str:
     if outcome == "captured":
-        return "manually created via browser, session captured"
+        return "manually created via browser"
     return f"manually recorded: {outcome}"
 
 
@@ -190,20 +191,8 @@ async def _prompt_outcome(rp_id: str, page) -> str | None:
 
 
 async def _record_outcome(rp_id: str, outcome: str, note: str, *,
-                          page, origin: str, started: str) -> bool:
-    """Write the three recording tiers for one RP. Returns False (recording
-    nothing) only when a `captured` run produced an empty, unusable session."""
-    session_path = None
-    if outcome == "captured":
-        sp = Path(f"sessions/{rp_id}.json")
-        n = await capture_session_file(rp_id, page)
-        print(f"  ✓ wrote {sp} ({n} cookie(s) captured)")
-        if n == 0:
-            print(f"  ⚠ {sp} has no cookies — NOT recording as captured; "
-                  f"left pending. Log in and rerun this RP.")
-            return False
-        session_path = sp
-
+                          page, origin: str, started: str) -> None:
+    """Write the three recording tiers for one RP."""
     art_dir = Path("artifacts") / rp_id
     art_dir.mkdir(parents=True, exist_ok=True)
 
@@ -226,8 +215,6 @@ async def _record_outcome(rp_id: str, outcome: str, note: str, *,
     if rp_id in led.get("entries", {}):
         attempts = ledger.increment_attempts(led, rp_id)
         extra = {"signup_url": signup_url, "source": "manual"}
-        if session_path:
-            extra["session_path"] = str(session_path)
         ledger.update_state(led, rp_id, outcome, note=note, extra=extra)
         print(f"  ✓ ledger {rp_id} → {outcome}")
     else:
@@ -244,8 +231,6 @@ async def _record_outcome(rp_id: str, outcome: str, note: str, *,
         "signup_url": signup_url,
         "source": "manual",
     }
-    if session_path:
-        result["session_path"] = str(session_path)
     result_path = art_dir / f"{_now()}-result.json"
     with open(result_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, default=str)
@@ -253,13 +238,12 @@ async def _record_outcome(rp_id: str, outcome: str, note: str, *,
 
     # Tier 3: batch-log line.
     run_record.append_batch_log(rp_id, outcome, attempts, note, source="manual")
-    return True
 
 
 async def _process_one(rp_id: str) -> str | None:
     """Open one RP, prompt for the outcome + note, and record it. Returns the
     recorded outcome, or None if the RP was skipped / not recorded."""
-    origin = _origin_for(rp_id)
+    origin = origin_for(rp_id)
     started = _now()
     page = await browsermod.ensure_browser_for(rp_id)
     print(f"→ navigating to {origin}")
@@ -286,9 +270,9 @@ async def _process_one(rp_id: str) -> str | None:
         return None
     raw = input(f"  note (Enter for '{_default_note(outcome)}')> ").strip()
     note = raw or _default_note(outcome)
-    recorded = await _record_outcome(rp_id, outcome, note, page=page,
-                                     origin=origin, started=started)
-    return outcome if recorded else None
+    await _record_outcome(rp_id, outcome, note, page=page,
+                          origin=origin, started=started)
+    return outcome
 
 
 def _print_summary(tally: Counter, processed: int, total: int) -> None:

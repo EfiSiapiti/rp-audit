@@ -13,9 +13,9 @@ of (`hook.js`) to observe several parameters.
 The workflow has three manual phases, all human-in-the-loop:
 
 - **Signup** (`scripts/manual_signup.py`) — opens each target RP in its own persistent
-  browser profile. You create the account by hand; the tool captures the resulting
-  session (cookies + localStorage) to `sessions/<rp>.json` and records the outcome.
-  For heavily-defended RPs whose bot-detection blocks the Playwright browser, a second
+  browser profile. You create the account by hand and record the outcome; the profile
+  under `browser-profiles/<rp>` stays logged in for later phases. For heavily-defended
+  RPs whose bot-detection blocks the Playwright browser, a second
   variant (`scripts/manual_launch.py`) opens the site in a plain, un-automated Chrome
   instead — see *Signup in a real Chrome* below.
 - **Enrollment / hook observation** (`src/hook/run.py`) — attaches to a long-running
@@ -172,7 +172,7 @@ python -m src.sync_selected_status_notes data/targets_selected.csv data/targets_
 
 Opens each RP one at a time in its per-RP browser profile. You drive the page; when
 you've reached an outcome (created the account, or hit a blocker), type it in the
-console. For `captured`, the session is written to `sessions/<rp>.json`.
+console.
 
 As a convenience it runs an **assist** bundle on the page — once on landing, and
 again whenever you type `fill` at the prompt (do that after navigating to the actual
@@ -205,10 +205,10 @@ python -m scripts.manual_signup --batch 10
 
 Valid outcomes are defined in `src/lib/outcomes.py`:
 
-- `captured` — account created; session saved.
+- `captured` — account created; the browser profile stays logged in.
 - `phone-gated`, `captcha-blocked`, `geo-blocked`, `duplicate-account`,
-  `requires-existing-account`, `no-portal`, `dns-dead` — blockers (no session; a
-  best-effort evidence screenshot is recorded).
+  `requires-existing-account`, `no-portal`, `dns-dead` — blockers; a
+  best-effort evidence screenshot is recorded.
 - `failed` — other failure.
 
 Each run is recorded across three tiers, flagged `source=manual`: the ledger
@@ -221,7 +221,7 @@ Some RPs (Discord, X, TikTok, Canva, …) fingerprint the Playwright-launched br
 loop their CAPTCHA forever. `scripts/manual_launch.py` launches your normal system Chrome
 directly — no automation switches, its own clean profile under
 `browser-profiles-manual/<rp>` — so you have the best chance of getting through by hand.
-Playwright is used only at the end, over CDP, to read the resulting session; it never
+Playwright is used only at the end, over CDP, to grab an evidence screenshot; it never
 drives the page during signup. Outcomes are recorded exactly like `manual_signup`
 (ledger + artifact + batch log), flagged `source=manual-chrome`.
 
@@ -237,16 +237,6 @@ Chrome is auto-detected; pass `--chrome <path>` if needed. It opens one RP per w
 closes it when you move on, so finish an RP fully before pressing Enter for the next. A
 clean profile is your best shot, not a guarantee — a brand-new profile with no history can
 still be challenged.
-
-### Recovering a session (no re-signup)
-
-If an account already exists and its `browser-profiles/<rp>` profile is still logged in,
-grab a fresh session without re-walking signup:
-
-```powershell
-python -m scripts.capture_session --rp notion.so
-python -m scripts.capture_session --rp notion.so --set-captured   # also flip ledger
-```
 
 ### Fetching a verification code (IMAP)
 
@@ -270,11 +260,13 @@ Drive the passkey flow yourself with network + hook capture. Make sure the hook 
 (step 5 above) is running first.
 
 ```powershell
-python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-account --no-localstorage
+python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-account
 ```
 
 You drive the browser; the harness dumps captured traffic to
-`artifacts/hook-runs/<rp>/<timestamp>/` when you press Enter.
+`artifacts/hook-runs/<rp>/<timestamp>/` when you press Enter. You need to already be
+logged into the RP in the hook Chrome (step 5 above) — this harness only observes and
+captures, it does not sign you in.
 
 `--enroll-url` is optional. Omit it when you don't know the passkey page — just run and
 navigate there yourself. Capture binds to every open tab *and* to any tab/popup opened
@@ -282,7 +274,7 @@ during the run, so it follows you even when the ceremony runs on a different ori
 `accounts.meta.com` for Facebook). Keep that tab open until you press Enter.
 
 ```powershell
-python -m src.hook.run --rp facebook.com --no-restore   # navigate to the passkey page by hand
+python -m src.hook.run --rp facebook.com   # navigate to the passkey page by hand
 ```
 
 #### Advertised-parameter capture (automatic)
@@ -321,7 +313,7 @@ Each run records to **two outputs**, automatically, no extra command:
 overwriting. Pass **`--label <control>`** to name the run (one `hook.js` branch per control):
 
 ```powershell
-python -m src.hook.run --rp facebook.com --no-restore --label alg-downgrade-RS256
+python -m src.hook.run --rp facebook.com --label alg-downgrade-RS256
 ```
 
 Columns: `captured_at, rp_id, label`, then
@@ -432,7 +424,7 @@ is needed):
 
 The fabricated keypairs `hook.js` creates are persisted in the extension's
 `chrome.storage.local` (under `fabricatedKeys`, keyed by rpId) so they survive reloads and
-are available across origins. This store is **separate** from the audit ledger/sessions —
+are available across origins. This store is **separate** from the audit ledger —
 "Resetting a single RP" below does not touch it.
 
 Manage them from the DevTools **Console** of any tab where the hook is installed (the
@@ -484,7 +476,8 @@ python -c "from src.lib import ledger; led = ledger.load(); led['entries']['noti
 python -m scripts.manual_signup --rp notion.so
 ```
 
-When done, the ledger entry should be `captured` and `sessions/notion.so.json` should exist.
+When done, the ledger entry should be `captured` and `browser-profiles/notion.so/` should
+be a logged-in Chrome profile.
 
 ### 3. Make sure hook Chrome is running
 
@@ -499,7 +492,7 @@ If not already running:
 ### 4. Observe the passkey enrollment
 
 ```powershell
-python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-account --no-localstorage
+python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-account
 ```
 
 ### Viewing results
@@ -516,7 +509,6 @@ python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-acco
 ### Resetting a single RP
 
 ```powershell
-Remove-Item sessions\notion.so.json -ErrorAction SilentlyContinue
 Remove-Item artifacts\notion.so -Recurse -ErrorAction SilentlyContinue
 Remove-Item artifacts\hook-runs\notion.so -Recurse -ErrorAction SilentlyContinue
 python -c "from src.lib import ledger; led = ledger.load(); led['entries']['notion.so']['state'] = 'pending'; ledger.save(led)"
@@ -543,7 +535,6 @@ src/
     ├── consent.py            # Cookie/consent banner dismissal + checkbox classifier
     ├── credentials.py        # Per-RP credential derivation (from identity.json)
     ├── detect.py             # Page-state detection heuristics
-    ├── idb.py                # IndexedDB / storage helpers
     ├── ledger.py             # Ledger read/write/state transitions
     ├── outcomes.py           # Valid outcome set + retry policy
     ├── parse.py              # CSV parsing
@@ -556,7 +547,6 @@ src/
 scripts/
 ├── manual_signup.py          # Manual signup + outcome recording (Playwright assist)
 ├── manual_launch.py          # Manual signup in a plain real Chrome (heavily-defended RPs)
-├── capture_session.py        # Recover a session from a logged-in profile
 └── fetch_code.py             # Fetch verification codes from IMAP
 
 data/
@@ -568,7 +558,6 @@ artifacts/
 ├── <rp>/                     # Signup outcome artifacts + screenshots
 └── hook-runs/                # Manual hook harness run artifacts
 
-sessions/                     # Captured signup sessions (cookies + localStorage)
 browser-profiles/             # Persistent profile dirs for per-RP browsers (Playwright)
 browser-profiles-manual/      # Clean real-Chrome profiles for manual_launch.py
 ```
@@ -576,9 +565,9 @@ browser-profiles-manual/      # Clean real-Chrome profiles for manual_launch.py
 ## Data Flow
 
 1. `data/targets.csv` → `python -m src.init` → `data/ledger.json` (one entry per RP, triaged).
-2. `python -m scripts.manual_signup` → you create the account; session written to
-   `sessions/<rp>.json`; ledger state → `captured` (or a blocker outcome).
-3. `python -m src.hook.run` → attach to hook Chrome, restore the session, drive passkey
+2. `python -m scripts.manual_signup` → you create the account in its persistent browser
+   profile; ledger state → `captured` (or a blocker outcome).
+3. `python -m src.hook.run` → attach to hook Chrome (already logged in), drive passkey
    creation by hand, and capture hook + network traffic under `artifacts/hook-runs/`.
 
 ## Troubleshooting
@@ -595,16 +584,10 @@ Chrome stable (130+) disabled `--load-extension` via command line. Attach to a C
 launched manually with the extension already installed — don't try to load the extension
 through Playwright.
 
-### Session restore lands on a login page
+### Hook Chrome lands on a login page
 
-The session in `sessions/<rp>.json` has likely expired, or the account behind it was
-deleted. Reset the ledger entry to `pending` and re-run signup, or use
-`scripts.capture_session` if the profile is still logged in.
-
-### Notion-style "Failed to load record" after session restore
-
-The captured localStorage may conflict with what the RP expects after cookie restoration.
-Pass `--no-localstorage` to `src.hook.run` to restore cookies only.
+The hook Chrome profile (step 5 above) isn't logged into the RP. Log in there by hand —
+that profile persists, so you only need to do it once per RP.
 
 ### IMAP fetch finds nothing
 

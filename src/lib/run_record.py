@@ -1,10 +1,10 @@
 """Shared run-record writers — keep every signup run recorded identically.
 
-The manual signup command (scripts/manual_signup.py) and session-recovery
-(scripts/capture_session.py) finish a run by appending a one-line summary to
-data/batch_log.jsonl. Keeping that writer here (rather than private to one
-script) means every path emits the same shape, and the `source` field records
-how each `captured` outcome was produced.
+The manual signup commands (scripts/manual_signup.py, scripts/manual_launch.py)
+finish a run by appending a one-line summary to data/batch_log.jsonl. Keeping
+that writer here (rather than private to one script) means every path emits
+the same shape, and the `source` field records how each `captured` outcome
+was produced.
 
 Kept dependency-free (no project imports) so anything can import it without cycles.
 """

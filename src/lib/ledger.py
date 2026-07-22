@@ -11,7 +11,7 @@ States:
   discovering       — signup URL discovery in progress
   signup-able       — discovered + ready
   in-progress       — runner is currently working this RP
-  captured          — session captured + validated
+  captured          — account created + validated
   phone-gated       — form required phone verification
   captcha-blocked   — manual CAPTCHA needed, paused for user
   geo-blocked       — RP refused service from this IP/region
@@ -110,6 +110,13 @@ def get_next_pending(ledger: dict, *, allowed_states=("pending", "redo")) -> dic
         if entry["state"] in allowed_states:
             return entry
     return None
+
+
+def origin_for(rp_id: str) -> str:
+    """Where to navigate for this RP. Prefers the ledger's canonical_origin;
+    falls back to https://<rp_id> so callers work for an RP not in the ledger."""
+    entry = load().get("entries", {}).get(rp_id, {})
+    return entry.get("canonical_origin") or f"https://{rp_id}"
 
 
 def update_state(ledger: dict, rp_id: str, new_state: str, *, note: str = "",
