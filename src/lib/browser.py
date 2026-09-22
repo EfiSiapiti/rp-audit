@@ -6,22 +6,14 @@ module-level singleton.
 
 Design:
 - Headed Chromium / Chrome (visible). User watches and solves CAPTCHAs.
-- Per-RP persistent context under browser-profiles/<rp_id>/ so each RP
-  has its own cookie jar but accumulates "returning user" signal across
-  reruns of the same RP. Different RPs do NOT share cookies.
+- Each launch gets a throwaway temp profile — we never create or reuse a
+  persistent per-RP profile, so every run starts as a first-time visitor
+  with an empty cookie jar. The temp dir is removed on shutdown.
 - playwright-stealth patches injected on every page to hide the most
   obvious automation tells (navigator.webdriver, plugin arrays, etc).
-- Real Chrome via channel="chrome" if available, fallback to Chromium.
 
-Stealth notes — set expectations honestly:
-- These patches defeat lazy fingerprint checks (the kind that just look
-  at navigator.webdriver). They do NOT defeat sophisticated commercial
-  bot-detection like Cloudflare Enterprise, PerimeterX/HUMAN, Datadome,
-  or Akamai Bot Manager. Those analyze timing, mouse paths, TLS
-  fingerprints, and many other signals beyond what we can patch.
-- Expected effect: maybe 50-60% reduction in CAPTCHA challenges on
-  mid-defended sites. Heavily defended ones (X/Twitter, Canva, TikTok,
-  Cloudflare-protected forms) will still block.
+Stealth notes:
+- After busting my patience, the automation passes the browser attached to playwright test though the flag --disable-blink-features=AutomationControlle.
 """
 
 from __future__ import annotations
@@ -29,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import json
 import shutil
+import tempfile
 from pathlib import Path
 
 from playwright.async_api import async_playwright, BrowserContext, Page, Playwright
@@ -40,17 +33,27 @@ except ImportError:
     _STEALTH_AVAILABLE = False
 
 
-PROFILES_ROOT = Path("browser-profiles")
+def _ephemeral_profile_dir(rp_id: str) -> Path:
+    """A throwaway profile directory for a single launch.
+
+    We deliberately do NOT create or reuse a persistent per-RP profile under
+    browser-profiles/ — every launch gets a fresh temp dir, so each run is a
+    first-time visitor. The dir is our own scratch space (removed on
+    shutdown), never a directory the user manages.
+    """
+    safe = rp_id.replace("/", "_").replace("\\", "_")
+    return Path(tempfile.mkdtemp(prefix=f"rp-audit-{safe}-"))
 
 
 def _merge_chrome_prefs(prefs_path: Path) -> None:
     """Re-assert the password-manager / autofill suppression keys every launch.
 
-    Chrome rewrites its Preferences file on exit, so writing these only when
-    the file was absent (the old behaviour) let the "Save password?" bubble —
-    which can sit on top of the form and block submission — come back whenever
-    a profile was reused. Merge the keys into whatever Chrome last wrote,
-    preserving everything else; tolerate a missing/corrupt file.
+    Each launch uses a fresh temp profile, so this normally writes into a
+    new Preferences file. Merge (rather than overwrite) the keys anyway so
+    that if Chrome has already written a Preferences file this run, the
+    "Save password?" bubble — which can sit on top of the form and block
+    submission — stays suppressed; preserve everything else and tolerate a
+    missing/corrupt file.
     """
     data: dict = {}
     if prefs_path.exists():
@@ -105,6 +108,7 @@ class BrowserSession:
         self.ctx: BrowserContext | None = None
         self.page: Page | None = None
         self.rp_id: str | None = None
+        self._profile_dir: Path | None = None
 
     async def _apply_stealth(self, page: Page) -> None:
         if not _STEALTH_AVAILABLE:
@@ -115,30 +119,31 @@ class BrowserSession:
             print(f"  (stealth patches failed: {e})")
 
     async def _launch_for_rp(self, rp_id: str) -> Page:
-        profile_dir = PROFILES_ROOT / rp_id
-        default_dir = profile_dir / "Default"
-        default_dir.mkdir(parents=True, exist_ok=True)   # parents=True also makes profile_dir
-        prefs = default_dir / "Preferences"
-        _merge_chrome_prefs(prefs)   # re-assert every launch, not just first
 
-        launch_kwargs = dict(
-            user_data_dir=str(profile_dir.absolute()),
-            headless=False,
-            viewport={"width": 1280, "height": 800},
-            locale="en-US",
-            args=[
-                "--disable-features=IsolateOrigins,site-per-process,"
-                "AutofillServerCommunication,AutofillEnableAccountWalletStorage",
-                "--disable-autofill-keyboard-accessory-view"
-            ],
-            ignore_default_args=["--enable-automation"],
-        )
-
-        # Retry: a profile reopened right after being closed can launch wedged
-        # (lock not yet released). Verify the page is live; if not, tear down
-        # and retry after a short, growing delay so the lock can clear.
         last_problem = "unknown"
         for attempt in range(1, 4):
+            profile_dir = _ephemeral_profile_dir(rp_id)
+            self._profile_dir = profile_dir
+            default_dir = profile_dir / "Default"
+            default_dir.mkdir(parents=True, exist_ok=True)
+            _merge_chrome_prefs(default_dir / "Preferences")
+
+            launch_kwargs = dict(
+                user_data_dir=str(profile_dir.absolute()),
+                headless=False,
+                
+                no_viewport=True,
+               
+                args=[
+                    "--disable-features=IsolateOrigins,site-per-process,"
+                    "AutofillServerCommunication,AutofillEnableAccountWalletStorage",
+                    "--disable-autofill-keyboard-accessory-view",
+               
+                    "--disable-blink-features=AutomationControlled",
+                ],
+                ignore_default_args=["--enable-automation"],
+            )
+
             self.pw = await async_playwright().start()
             try:
                 try:
@@ -149,6 +154,12 @@ class BrowserSession:
                     channel = "Chromium fallback"
                 self.page = self.ctx.pages[0] if self.ctx.pages else await self.ctx.new_page()
                 await self._apply_stealth(self.page)
+                # No UA / Client-Hints override: native Chrome already emits a
+                # correct, machine-accurate and self-consistent UA + Sec-CH-UA-*
+                # set (verified: platform-version, arch, bitness, full-version
+                # all match a normally-launched Chrome). A CDP override could
+                # only introduce a mismatch — e.g. a hardcoded platformVersion
+                # that Cloudflare's critical-CH retry would catch.
                 self.rp_id = rp_id
                 if await _page_healthy(self.page):
                     print(f"  (browser: {channel}, profile={profile_dir})")
@@ -196,11 +207,10 @@ class BrowserSession:
             self.ctx = None
             self.page = None
             self.rp_id = None
-
-    async def reset_profile(self, rp_id: str) -> None:
-        profile_dir = PROFILES_ROOT / rp_id
-        if profile_dir.exists():
-            shutil.rmtree(profile_dir, ignore_errors=True)
+            # Remove the throwaway profile so nothing persists to be reused.
+            if self._profile_dir is not None:
+                shutil.rmtree(self._profile_dir, ignore_errors=True)
+                self._profile_dir = None
 
 
 _session = BrowserSession()
@@ -228,7 +238,3 @@ async def get_context() -> BrowserContext:
 
 async def shutdown() -> None:
     await _session.shutdown()
-
-
-async def reset_profile(rp_id: str) -> None:
-    await _session.reset_profile(rp_id)
