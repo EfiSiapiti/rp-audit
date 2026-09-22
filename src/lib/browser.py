@@ -13,7 +13,8 @@ Design:
   obvious automation tells (navigator.webdriver, plugin arrays, etc).
 
 Stealth notes:
-- After busting my patience, the automation passes the browser attached to playwright test though the flag --disable-blink-features=AutomationControlle.
+- After busting my patience, the automation passes the browser attached 
+to playwright test though the flag --disable-blink-features=AutomationController.
 """
 
 from __future__ import annotations
@@ -109,6 +110,7 @@ class BrowserSession:
         self.page: Page | None = None
         self.rp_id: str | None = None
         self._profile_dir: Path | None = None
+        self._extension_dir: str | None = None
 
     async def _apply_stealth(self, page: Page) -> None:
         if not _STEALTH_AVAILABLE:
@@ -118,7 +120,7 @@ class BrowserSession:
         except Exception as e:
             print(f"  (stealth patches failed: {e})")
 
-    async def _launch_for_rp(self, rp_id: str) -> Page:
+    async def _launch_for_rp(self, rp_id: str, extension_dir: str | None = None) -> Page:
 
         last_problem = "unknown"
         for attempt in range(1, 4):
@@ -128,30 +130,42 @@ class BrowserSession:
             default_dir.mkdir(parents=True, exist_ok=True)
             _merge_chrome_prefs(default_dir / "Preferences")
 
+            args = [
+                "--disable-features=IsolateOrigins,site-per-process,"
+                "AutofillServerCommunication,AutofillEnableAccountWalletStorage",
+                "--disable-autofill-keyboard-accessory-view",
+                "--disable-blink-features=AutomationControlled",
+            ]
+            if extension_dir:
+                # Load the pwned-xploit hook as an unpacked extension so its
+                # MAIN-world hook.js wraps navigator.credentials.create for the
+                # fabrication run. Requires headed mode (we are).
+                ext = str(Path(extension_dir).absolute())
+                args += [f"--disable-extensions-except={ext}", f"--load-extension={ext}"]
+
             launch_kwargs = dict(
                 user_data_dir=str(profile_dir.absolute()),
                 headless=False,
-                
                 no_viewport=True,
-               
-                args=[
-                    "--disable-features=IsolateOrigins,site-per-process,"
-                    "AutofillServerCommunication,AutofillEnableAccountWalletStorage",
-                    "--disable-autofill-keyboard-accessory-view",
-               
-                    "--disable-blink-features=AutomationControlled",
-                ],
+                args=args,
                 ignore_default_args=["--enable-automation"],
             )
 
             self.pw = await async_playwright().start()
             try:
-                try:
-                    self.ctx = await self.pw.chromium.launch_persistent_context(channel="chrome", **launch_kwargs)
-                    channel = "real Chrome"
-                except Exception:
+                if extension_dir:
+                    # Real Chrome (channel="chrome") ignores --load-extension
+                    # since ~Chrome 137, so an unpacked extension only loads on
+                    # bundled Chromium. Force it when an extension is requested.
                     self.ctx = await self.pw.chromium.launch_persistent_context(**launch_kwargs)
-                    channel = "Chromium fallback"
+                    channel = "Chromium (extension)"
+                else:
+                    try:
+                        self.ctx = await self.pw.chromium.launch_persistent_context(channel="chrome", **launch_kwargs)
+                        channel = "real Chrome"
+                    except Exception:
+                        self.ctx = await self.pw.chromium.launch_persistent_context(**launch_kwargs)
+                        channel = "Chromium fallback"
                 self.page = self.ctx.pages[0] if self.ctx.pages else await self.ctx.new_page()
                 await self._apply_stealth(self.page)
                 # No UA / Client-Hints override: native Chrome already emits a
@@ -174,12 +188,14 @@ class BrowserSession:
 
         raise RuntimeError(f"browser launch failed for {rp_id!r} after 3 attempts: {last_problem}")
 
-    async def ensure_browser_for(self, rp_id: str) -> Page:
-        if self.rp_id == rp_id and self.page and not self.page.is_closed():
+    async def ensure_browser_for(self, rp_id: str, extension_dir: str | None = None) -> Page:
+        if (self.rp_id == rp_id and self._extension_dir == extension_dir
+                and self.page and not self.page.is_closed()):
             return self.page
         if self.rp_id is not None:
             await self.shutdown()
-        return await self._launch_for_rp(rp_id)
+        self._extension_dir = extension_dir
+        return await self._launch_for_rp(rp_id, extension_dir)
 
     async def ensure_browser(self) -> Page:
         if self.page and not self.page.is_closed():
@@ -216,8 +232,8 @@ class BrowserSession:
 _session = BrowserSession()
 
 
-async def ensure_browser_for(rp_id: str) -> Page:
-    return await _session.ensure_browser_for(rp_id)
+async def ensure_browser_for(rp_id: str, extension_dir: str | None = None) -> Page:
+    return await _session.ensure_browser_for(rp_id, extension_dir)
 
 
 async def ensure_browser() -> Page:

@@ -1,0 +1,46 @@
+{
+  "rp_id": "facebook.com",
+  "login_url": "https://www.facebook.com/login/",
+  "steps": [
+    {
+      "kind": "navigate",
+      "url": "https://www.facebook.com/login/"
+    },
+    {
+      "kind": "click",
+      "selector": "div[aria-label=\"Decline\\ optional\\ cookies\"]",
+      "frame_url": "https://www.facebook.com/login/",
+      "text": "Decline optional cookies"
+    },
+    {
+      "kind": "click",
+      "selector": "#facebook > body",
+      "frame_url": "https://www.facebook.com/login/",
+      "text": "Explore the things you love.\nLog into Fa"
+    },
+    {
+      "kind": "fill",
+      "selector": "#_r_2_",
+      "frame_url": "https://www.facebook.com/login/",
+      "field": "email"
+    },
+    {
+      "kind": "click",
+      "selector": "#facebook > body",
+      "frame_url": "https://www.facebook.com/login/",
+      "text": "Explore the things you love.\nLog into Fa"
+    },
+    {
+      "kind": "fill",
+      "selector": "#_r_5_",
+      "frame_url": "https://www.facebook.com/login/",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "div[aria-label=\"Log\\ In\"]",
+      "frame_url": "https://www.facebook.com/login/",
+      "text": "Log in"
+    }
+  ]
+}

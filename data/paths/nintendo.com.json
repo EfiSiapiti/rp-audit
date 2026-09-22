@@ -1,0 +1,48 @@
+{
+  "rp_id": "nintendo.com",
+  "login_url": "https://accounts.nintendo.com/login",
+  "steps": [
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/login"
+    },
+    {
+      "kind": "fill",
+      "selector": "#login-form-id",
+      "frame_url": "https://accounts.nintendo.com/login",
+      "field": "email"
+    },
+    {
+      "kind": "fill",
+      "selector": "#login-form-password",
+      "frame_url": "https://accounts.nintendo.com/login",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "#accounts-login-button",
+      "frame_url": "https://accounts.nintendo.com/login",
+      "text": "Sign in"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/challenge/email?post_challenge_redirect_uri=https%3A%2F%2Faccounts.nintendo.com%2F"
+    },
+    {
+      "kind": "fill",
+      "selector": "#challenge_form_pc_input_0",
+      "frame_url": "https://accounts.nintendo.com/challenge/email?post_challenge_redirect_uri=https%3A%2F%2Faccounts.nintendo.com%2F",
+      "field": "otp"
+    },
+    {
+      "kind": "click",
+      "selector": "#challenge_form_pc_button_0",
+      "frame_url": "https://accounts.nintendo.com/challenge/email?post_challenge_redirect_uri=https%3A%2F%2Faccounts.nintendo.com%2F",
+      "text": "Verify"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/"
+    }
+  ]
+}

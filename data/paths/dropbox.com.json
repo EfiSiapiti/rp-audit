@@ -1,0 +1,39 @@
+{
+  "rp_id": "dropbox.com",
+  "login_url": "https://www.dropbox.com/login",
+  "steps": [
+    {
+      "kind": "navigate",
+      "url": "https://www.dropbox.com/login"
+    },
+    {
+      "kind": "fill",
+      "selector": "[data-testid=\"susi-email-input\"]",
+      "frame_url": "https://www.dropbox.com/login",
+      "field": "email"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"susi-email-continue-button\"]",
+      "frame_url": "https://www.dropbox.com/login",
+      "text": "Continue"
+    },
+   
+    {
+      "kind": "fill",
+      "selector": "[data-testid=\"susi-password-input\"]",
+      "frame_url": "https://www.dropbox.com/login",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"susi-login-button\"]",
+      "frame_url": "https://www.dropbox.com/login",
+      "text": "Log in"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.dropbox.com/"
+    }
+  ]
+}

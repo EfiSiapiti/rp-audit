@@ -1,0 +1,10 @@
+{
+  "rp_id": "github.com",
+  "login_url": "https://github.com/login",
+  "steps": [
+    { "kind": "navigate", "url": "https://github.com/login" },
+    { "kind": "fill", "selector": "#login_field", "frame_url": null, "field": "email" },
+    { "kind": "fill", "selector": "#password", "frame_url": null, "field": "password" },
+    { "kind": "click", "selector": "input[name=\"commit\"]", "frame_url": null, "text": "Sign in" }
+  ]
+}
