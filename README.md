@@ -1,584 +1,129 @@
-# RP Audit Agent
+# RP Audit
 
-A semi-automated toolkit for auditing relying party (RP) WebAuthn / passkey behavior.
-You drive the signup and enrollment yourself; the toolkit provides two conveniences —
-**Playwright** (a persistent per-RP browser) and **IMAP** (verification-code fetching) —
-plus consistent record-keeping (ledger + artifacts + batch log).
+A toolkit for auditing relying-party (RP) WebAuthn / passkey behavior. It fabricates
+passkeys with a research hook (`hook.js`, from the sibling `pwned-xploit` repo) and records
+what each RP advertises and accepts. No LLM/agent automation — the scripts only launch the
+browser, fetch mail, inject the hook, and record.
 
-Different scenarios of abnormal passkey behaviour are exercised with modified versions
-of (`hook.js`) to observe several parameters.
+Two workflows:
 
-## Overview
-
-The workflow has three manual phases, all human-in-the-loop:
-
-- **Signup** (`scripts/manual_signup.py`) — opens each target RP in its own persistent
-  browser profile. You create the account by hand and record the outcome; the profile
-  under `browser-profiles/<rp>` stays logged in for later phases. For heavily-defended
-  RPs whose bot-detection blocks the Playwright browser, a second
-  variant (`scripts/manual_launch.py`) opens the site in a plain, un-automated Chrome
-  instead — see *Signup in a real Chrome* below.
-- **Enrollment / hook observation** (`src/hook/run.py`) — attaches to a long-running
-  Chrome instance with `hook.js` loaded. You drive the passkey flow yourself while the
-  hook fabricates the credential; the harness captures the network + hook traffic.
-- **Verification codes** (`scripts/fetch_code.py`) — pulls the latest verification
-  code/link for an RP straight from your IMAP inbox, so you don't have to switch to a
-  mail client mid-flow.
-
-There is no Claude/LLM automation in this toolkit — every browser action is performed
-by you. The scripts only launch the browser, fetch mail, and record outcomes.
-
-## Prerequisites
-
-- Python 3.11+
-- Google Chrome
-- The `hook.js` extension source (separate repo)
-
-Tested on Windows 11. Other platforms have not been verified.
+- **Manual** — you drive signup and the passkey ceremony by hand. The hook runs as a Chrome
+  extension you load, and `src/hook/run.py` observes.
+- **Automated (record/replay)** — record a login (or full login→Add-passkey) once, then replay
+  it unattended on **real Chrome** (anti-detection; passes bot-detection that blocks a plain
+  Playwright browser). The hook is *injected* (no extension), and a persistence bridge lets a
+  fabricated key survive register→authenticate.
 
 ## Setup
 
-### 1. Virtual environment
-
 ```powershell
-python -m venv .venv
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
-.\.venv\Scripts\Activate.ps1
-```
-
-### 2. Install dependencies
-
-```powershell
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
 pip install -e .
 playwright install chromium
 ```
 
-See `.gitignore` for sensitive files that shouldn't be committed.
+- **`.env`** — IMAP for email verification codes:
+  ```
+  IMAP_HOST=imap.gmail.com
+  IMAP_PORT=993
+  IMAP_USER=you@example.com
+  IMAP_PASS=your-app-password    # Gmail: an app password
+  ```
+- **`identity.json`** (not committed) — the test account:
+  ```json
+  { "email": "test@example.com", "password": "...", "first_name": "Test", "last_name": "User" }
+  ```
+- **`hook.js`** — clone the sibling `pwned-xploit` repo next to this one, so the hook is at
+  `../pwned-xploit/pwned-xploit/hook.js`. Used by both workflows.
 
-### 3. Environment (`.env`)
-
-IMAP settings are required (for `fetch_code`):
-
-```
-IMAP_HOST=imap.gmail.com    # optional, this is the default
-IMAP_PORT=993               # optional, this is the default
-IMAP_USER=you@example.com
-IMAP_PASS=your-app-password
-```
-
-### 4. Identity file
-
-Store the test identity in `identity.json` (not committed):
-
-```json
-{
-  "email": "test@example.com",
-  "first_name": "Test",
-  "last_name": "User",
-  "password": "..."
-}
-```
-
-Passwords are taken from the `password` field in `identity.json`.
-
-### 5. Hook Chrome (one-time per machine)
-
-The hook observation harness attaches to a Chrome instance you start manually. Launch it
-with a dedicated profile and remote debugging:
+## Targets & ledger
 
 ```powershell
-& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
-  --remote-debugging-port=9222 `
-  --user-data-dir="C:\chrome-hook-profile"
+python data/preprocessing/crux_sort.py data/targets.csv data/ledger_ranked.csv   # rank by CRUX
+python -m src.init targets_selected.csv                                           # build data/ledger.json
 ```
 
-On first launch:
+## Manual workflow
 
-1. Go to `chrome://extensions`, enable Developer mode.
-2. Click "Load unpacked" and select the `hook.js` extension directory.
-
-The extension persists in the profile, so future launches don't need this step.
-
-Keep this Chrome running in the background while you observe enrollment. The signup
-browser uses its own ephemeral/persistent profiles, so there's no conflict.
-
-## Configuration
-
-### Targets
-
-Specify which RPs to audit in `data/targets.csv` (output of your WebAuthn scanner):
-
-```csv
-canonical_origin,etld1,...
-https://www.notion.so,notion.so,...
-```
-
-Preprocessing is the cleanup step before and after the ledger is initialized:
-
-1. Run the CRUX sorter so the highest-priority RPs appear first.
-
-Use the CRUX sorter from the preprocessing directory:
+Human-in-the-loop; outcomes are recorded to the ledger, `artifacts/`, and `data/batch_log.jsonl`.
 
 ```powershell
-cd data/preprocessing
-python crux_sort.py
-```
+# Signup (per-RP browser; an assist autofills from identity.json but never submits)
+python -m scripts.manual_signup --rp notion.so          # or --rps a,b  |  --batch 10
 
-That reads `../targets.csv`, downloads or reuses the pinned CRUX snapshot, and writes
-`../ledger_ranked.csv`.
+# Signup in a plain real Chrome (heavily-defended RPs: Discord/X/Canva…)
+python -m scripts.manual_launch --rp discord.com        # or --rps  |  --batch  |  --state captcha-blocked
 
-If you prefer to stay at the repo root, run it with explicit paths instead:
-
-```powershell
-python data/preprocessing/crux_sort.py data/targets.csv data/ledger_ranked.csv
-```
-
-2. Initialize the ledger
-
-Initialize the ledger from the CSV after preprocessing:
-
-```powershell
-python -m src.init targets_selected.csv
-```
-
-This populates `data/ledger.json` with one entry per RP. It does not do the login/signup
-check itself; that is part of your preprocessing and discovery workflow.
-
-If you want the triage view for the raw targets, run:
-
-```powershell
-python -m src.lib.triage data/targets.csv
-```
-
-## Running
-
-### Signup phase (manual)
-
-Opens each RP one at a time in its per-RP browser profile. You drive the page; when
-you've reached an outcome (created the account, or hit a blocker), type it in the
-console.
-
-As a convenience it runs an **assist** bundle on the page — once on landing, and
-again whenever you type `fill` at the prompt (do that after navigating to the actual
-signup form). Assist is all best-effort and never clicks submit:
-
-1. dismisses a cookie/consent banner (`src/lib/consent.py`);
-2. autofills the signup fields from `identity.json` (`src/lib/autofill.py`) — visible,
-   empty fields only;
-3. ticks required Terms/Privacy/age checkboxes, leaving marketing opt-ins alone;
-4. scans for blockers (CAPTCHA, phone, geo, duplicate account) and whether you're on an
-   auth surface, and hints at the likely outcome (`src/lib/page_scan.py`).
-
-You still handle multi-step wizards, CAPTCHAs, and the final submit yourself.
-
-At the prompt you can also type `code` to pull the RP's latest email verification code
-from IMAP and type it straight into the OTP field (see *Fetching a verification code*),
-without leaving the flow. Navigation and each assist step are time-bounded, so a heavy
-consent wall (e.g. onet.pl) hands you control instead of freezing the run.
-
-```powershell
-# One specific RP:
-python -m scripts.manual_signup --rp notion.so
-
-# An explicit list, in order:
-python -m scripts.manual_signup --rps notion.so,figma.com
-
-# The next N pending RPs from the ledger:
-python -m scripts.manual_signup --batch 10
-```
-
-Valid outcomes are defined in `src/lib/outcomes.py`:
-
-- `captured` — account created; the browser profile stays logged in.
-- `phone-gated`, `captcha-blocked`, `geo-blocked`, `duplicate-account`,
-  `requires-existing-account`, `no-portal`, `dns-dead` — blockers; a
-  best-effort evidence screenshot is recorded.
-- `failed` — other failure.
-
-Each run is recorded across three tiers, flagged `source=manual`: the ledger
-(`data/ledger.json`), a per-run artifact (`artifacts/<rp>/<timestamp>-result.json`), and
-the batch log (`data/batch_log.jsonl`).
-
-### Signup in a real Chrome (heavily-defended RPs)
-
-Some RPs (Discord, X, TikTok, Canva, …) fingerprint the Playwright-launched browser and
-loop their CAPTCHA forever. `scripts/manual_launch.py` launches your normal system Chrome
-directly — no automation switches, its own clean profile under
-`browser-profiles-manual/<rp>` — so you have the best chance of getting through by hand.
-Playwright is used only at the end, over CDP, to grab an evidence screenshot; it never
-drives the page during signup. Outcomes are recorded exactly like `manual_signup`
-(ledger + artifact + batch log), flagged `source=manual-chrome`.
-
-```powershell
-# One RP, an explicit list, the next N pending, or every RP in a blocked state:
-python -m scripts.manual_launch --rp discord.com
-python -m scripts.manual_launch --rps discord.com,x.com,tiktok.com
-python -m scripts.manual_launch --batch 10
-python -m scripts.manual_launch --state captcha-blocked
-```
-
-Chrome is auto-detected; pass `--chrome <path>` if needed. It opens one RP per window and
-closes it when you move on, so finish an RP fully before pressing Enter for the next. A
-clean profile is your best shot, not a guarantee — a brand-new profile with no history can
-still be challenged.
-
-### Fetching a verification code (IMAP)
-
-When an RP gates signup or enrollment behind an email code, run this in a second terminal
-to pull the latest code/link from your inbox:
-
-```powershell
+# Fetch an email verification code (or type `code` at the signup prompt)
 python -m scripts.fetch_code --rp atlassian.com
-python -m scripts.fetch_code --rp atlassian.com --newer-than 90   # after a Resend
-python -m scripts.fetch_code --rp atlassian.com --timeout 180
-```
 
-Needs `IMAP_USER` / `IMAP_PASS` in `.env`. The code is read from the message **subject** as
-well as the body, and MIME-encoded (non-ASCII) subjects are decoded. During a signup you
-usually don't need this script — type `code` at the `manual_signup` prompt instead, which
-fetches and types the code in one step.
-
-### Enrollment / hook observation (manual)
-
-Drive the passkey flow yourself with network + hook capture. Make sure the hook Chrome
-(step 5 above) is running first.
-
-```powershell
-python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-account
-```
-
-You drive the browser; the harness dumps captured traffic to
-`artifacts/hook-runs/<rp>/<timestamp>/` when you press Enter. You need to already be
-logged into the RP in the hook Chrome (step 5 above) — this harness only observes and
-captures, it does not sign you in.
-
-`--enroll-url` is optional. Omit it when you don't know the passkey page — just run and
-navigate there yourself. Capture binds to every open tab *and* to any tab/popup opened
-during the run, so it follows you even when the ceremony runs on a different origin (e.g.
-`accounts.meta.com` for Facebook). Keep that tab open until you press Enter.
-
-```powershell
-python -m src.hook.run --rp facebook.com   # navigate to the passkey page by hand
-```
-
-#### Advertised-parameter capture (automatic)
-
-On every hook run, in addition to the raw network/console dumps, the harness pulls the
-hook's own **structured** event log (`window.__webauthnObserverGetLogs()`, gathered from
-every frame — some RPs run WebAuthn in a same-origin iframe) and writes it to
-`observer_log.json` in the run's artifact dir. The console text capture mangles the nested
-option objects, so this is the reliable source for what the RP advertised in
-`PublicKeyCredentialCreationOptions`.
-
-`hook.js` also mirrors its event log to the extension's `chrome.storage.local` on every
-event, so a ceremony is recovered even if the RP closes/navigates the tab that ran it (common
-right after registration — e.g. Facebook's `accounts.meta.com` popup). At capture time the
-harness reads that cross-origin store back through any hooked tab, and if only a blank tab is
-left it briefly opens `https://example.com` to get a hook context that can read it. So you no
-longer have to keep the exact ceremony tab open — but reload the extension after updating
-`hook.js`/`background.js` for this to take effect.
-
-Each run records to **two outputs**, automatically, no extra command:
-
-**(a) The advertised characterization — one row per RP** (captured once):
-- into the ledger, under `entries[<rp>]["advertised_params"]` (state-neutral — the RP's
-  `state` is not changed), via `ledger.record_advertised_params`;
-- into `data/targets_selected_status.csv`, upserting the row keyed by `etld1` (other rows
-  untouched). Columns are **`adv_*` only** — what the RP *requested*: `adv_rp_id`,
-  `adv_attestation`, `adv_uv`, `adv_resident_key`, `adv_require_resident_key`,
-  `adv_authenticator_attachment`, `adv_algs`, `adv_attestation_formats`, `adv_timeout`,
-  `adv_captured_at`. `adv_rp_id` is the id the ceremony actually advertised, which can differ
-  from your target label — e.g. `facebook.com` registers under `accounts.meta.com`. (Requested
-  `hints`, `extensions`, and the wire-side alg cross-check are still in the ledger, just not
-  projected.)
-
-**(b) The per-run result — one appended row per run** in `data/experiments.csv` (append-only,
-`;`-delimited). This is where you run and compare **control experiments** on the same RP without
-overwriting. Pass **`--label <control>`** to name the run (one `hook.js` branch per control):
-
-```powershell
+# Enrollment / hook observation: attach to your hook Chrome, drive the passkey by hand
 python -m src.hook.run --rp facebook.com --label alg-downgrade-RS256
 ```
 
-Columns: `captured_at, rp_id, label`, then
-- **`adv_*` — the advertised context, snapshotted this run** (`adv_rp_id`, `adv_attestation`,
-  `adv_uv`, `adv_resident_key`, `adv_require_resident_key`, `adv_authenticator_attachment`,
-  `adv_algs`, `adv_attestation_formats`, `adv_timeout`) so each experiment is self-contained and
-  a change in what the RP advertises over time (control 2) is visible across rows;
-- **`fab_*` — the credential that was *selected*/returned:** `fab_alg` (e.g. `RS256(-257)`),
-  `fab_alg_offered` (was that alg in the RP's `pubKeyCredParams`? `false` = a downgrade),
-  `fab_rsa_e` / `fab_rsa_n_bits` (weak-RSA control 5 — the public exponent and modulus
-  length the hook presented, e.g. `3` / `512`; blank for non-RSA algs like ES256, so a
-  weak-crypto run is distinguishable from a normal RS256 one),
-  `fab_key_source` / `fab_key_leak_origin` (leaked-key control `key-test` — `leaked` = the
-  credential public key is a **publicly-known** private key, plus where it leaked from, e.g.
-  `google/keytransparency#1530`; blank on runs that generate a fresh key),
-  `fab_flags` (authData bits, e.g. `UP,UV,BE,AT`), `fab_outcome` (`fabricated` = browser
-  returned a credential; `create-failed:<Error>` = the browser rejected it);
-- **`srv_*` — what the *server* said back:** the finish request/response located on the wire
-  (matched by the returned credId), giving `srv_endpoint`, `srv_status`, `srv_result`
-  (`accepted` / `rejected` / `not-captured` / `to be confirmed by human`), and `srv_message`
-  (a body snippet — the ground truth, since some RPs return HTTP 200 with an error body, and
-  Meta's XSSI prefix is stripped);
-- `artifact` — the run's artifact dir.
+**Hook Chrome (one-time):** launch Chrome with
+`--remote-debugging-port=9222 --user-data-dir=C:\chrome-hook-profile`, then load the `hook.js`
+directory via `chrome://extensions` (Developer mode → Load unpacked). Keep it running and logged
+into the RP; `run.py` only observes.
 
-Each experiment row tells the whole story: **advertised (via `adv_rp_id`) → selected → server
-verdict**, and a rejected registration is fully recorded. The enforcement signal is `srv_result`
-+ `srv_message`.
+Each hook run auto-records the RP's advertised params (`adv_*`) into the ledger +
+`data/targets_selected_status.csv`, and one row per run (`fab_*` results) into
+`data/experiments.csv` — `--label` names the control.
 
-The ledger is the source of truth; the CSV is a projection. Every hook run upserts its own
-row via `upsert_status_csv`, preserving the status file's existing delimiter (that file is
-`;`-delimited).
+## Automated workflow (record / replay)
 
-#### Exercising the fabrication controls (hook.js)
-
-The fabricated credential's behavior is set by constants at the top of `hook.js` (in the
-`pwned-xploit` extension repo); edit them and reload the extension between scenarios:
-
-- `SET_USER_VERIFIED` (UV, control d), `SET_BACKUP_ELIGIBLE` / `SET_BACKUP_STATE`
-  (BE/BS, control e) drive the authenticator-data flags byte. Setting `SET_BACKUP_STATE`
-  without `SET_BACKUP_ELIGIBLE` is spec-invalid (BS⇒BE) and logs a warning — that
-  misconfiguration is itself a probe of whether the RP rejects it.
-- `FABRICATION_ALG` (ES256/RS256) and the weak-RSA `RSA_PUBLIC_EXPONENT` /
-  `RSA_MODULUS_LENGTH` cover the algorithm-downgrade (c) and bad-key-parameter (5)
-  controls; `AAGUID` vs `fmt:"none"` probes attestation handling (a). The exponent and
-  modulus the hook presents are recorded per run as `fab_rsa_e` / `fab_rsa_n_bits` in
-  `data/experiments.csv` (blank for EC algs). For the **weak-crypto-e3** run, set
-  `FABRICATION_ALG=RS256` with `RSA_PUBLIC_EXPONENT=3` (and a small `RSA_MODULUS_LENGTH`
-  for the small-`n` variant), reload the extension, and pass `--label weak-crypto-e3`.
-- `REUSE_EXISTING_ON_CREATE` (control 3, re-register a revoked key) — see below.
-
-The emitted flags are logged per operation as `fabrication.flags` in the observer log.
-
-#### Control `key-test` — a leaked (publicly-known) private key
-
-The default `hook.js` branch generates a fresh keypair per `create()`. The **`key-test`** branch
-instead injects a **fixed, publicly-known** EC P-256 private key — one committed in plaintext to
-Google's public `google/keytransparency` repo and reported as a hard-coded secret (issue #1530;
-PEM in `./leaked-key/leaked_priv.pem`, injected as a verified JWK). Because the private key is
-already public, the credential offers **no genuine proof of possession**: this probes whether an
-RP will accept it anyway.
-
-The hook fabricates a spec-conformant `fmt:"none"` attestation carrying the leaked key and signs
-with ES256 (`-7`), tagging `fabrication.algSelection` with `keySource:"leaked"`, `keyCurve`, and
-`leakOrigin`. The harness surfaces those as `fab_key_source` / `fab_key_leak_origin` in
-`data/experiments.csv` (blank on fresh-key runs). Run it with:
+Recorded paths live in `data/paths/<rp>.json`. Secrets are never stored — password and email OTP
+are resolved live (from `identity.json` / IMAP) on replay.
 
 ```powershell
-python -m src.hook.run --rp <rp> --label leaked-key-test
+# Login: record once (drive by hand, Enter when signed in), then replay unattended
+python -m scripts.record_path   --rp github.com --login-url https://github.com/login
+python -m scripts.replay_passkey --rp github.com
+
+# Passkey fabrication: --hook injects hook.js (no extension) and persists the fabricated
+# key to data/fab_keys.json so it can authenticate later. Record the FULL ceremony, then replay.
+python -m scripts.record_path   --rp github.com --login-url https://github.com/login --hook
+python -m scripts.replay_passkey --rp github.com --hook --label ES256
 ```
 
-Read `srv_result`: `accepted` = the RP registered a credential whose private key is public (the
-finding); `rejected` = the RP refused it.
+`replay_passkey --hook` observes the ceremony and records to the ledger + `data/experiments.csv`
+(artifacts under `artifacts/passkey/<rp>/<label>/`), the same schema as `src.hook.run`.
 
-#### Control 3 — re-register a revoked credential (`REUSE_EXISTING_ON_CREATE`)
-
-By default the hook mints a **fresh** keypair + random `credId` on every `create()`. Flip the
-`REUSE_EXISTING_ON_CREATE` constant in `hook.js` to switch that branch:
-
-- **`false` (default):** each `create()` generates a fresh credential. Use for the baseline and
-  for any control that needs a *new* credential reflecting changed settings (algorithm, key
-  params, AAGUID/flags).
-- **`true`:** if a fabricated credential already exists for that rpId (persisted in
-  `chrome.storage` from an earlier run), `create()` **re-presents the SAME `credId` + keypair**
-  (preserving `signCount`) instead of minting a new one. Logged as `fabrication.reuseCredential`;
-  the experiment row shows `fab_outcome=reused`. A new rpId with no stored key falls back to a
-  fresh credential.
-
-**Workflow** (the baseline sweep already stored a credential per RP, so no separate register step
-is needed):
-1. Ensure the RP has a stored key (from the `none-attestation` run) and it's `accepted`.
-2. **Revoke** that passkey on the RP (your mechanism).
-3. Set `REUSE_EXISTING_ON_CREATE = true` → **reload the extension → reload the RP page**.
-4. `python -m src.hook.run --rp <rp> --label revoked-reregister` → the hook replays the same
-   `credId`. Keep the tab open, press Enter.
-5. Read `srv_result` in `data/experiments.csv`: `rejected` = RP tracks the revoked credential
-   (enforced); `accepted` = RP re-accepts it (the finding). Confirm the revoke actually took
-   effect first — an `accepted` only counts if the credential was truly removed beforehand.
-
-> ⚠ **Switch it back.** While `REUSE_EXISTING_ON_CREATE = true`, an RP that already has a stored
-> key will **always** replay it, silently ignoring any new `FABRICATION_ALG`/`AAGUID`/flag
-> settings. Set it back to `false` (or delete that RP's key with
-> `await window.__webauthnObserverDeleteKey("<rp>")`) before running controls that need a fresh
-> credential.
-
-#### Managing fabricated keys (chrome.storage)
-
-The fabricated keypairs `hook.js` creates are persisted in the extension's
-`chrome.storage.local` (under `fabricatedKeys`, keyed by rpId) so they survive reloads and
-are available across origins. This store is **separate** from the audit ledger —
-"Resetting a single RP" below does not touch it.
-
-Manage them from the DevTools **Console** of any tab where the hook is installed (the
-helpers live on `window` in the page's main world):
-
-```js
-// List what's stored (rpId, credId, createdAt, hasPrivateKey):
-await window.__webauthnObserverDumpKeys();
-
-// Delete ONE RP's stored key (control 3: re-register a revoked key):
-await window.__webauthnObserverDeleteKey("accounts.meta.com");
-
-// Delete ALL stored fabricated keys (all-or-nothing):
-await window.__webauthnObserverClearKeys();
-
-// The persisted event log is stored separately; clear it if it gets noisy:
-await window.__webauthnObserverClearPersistedLog();
-```
-
-`__webauthnObserverDeleteKey(rpId)` removes just that RP's key from storage and the calling
-tab's cache; `__webauthnObserverClearKeys()` wipes them all. Reload any other open tabs so
-their in-memory caches reset too.
-
-## Quick Start: Single-Site Test
-
-### 1. Make sure the site is in the ledger
-
-Check what's already there:
-
-```powershell
-python -c "from src.lib import ledger; led = ledger.load(); [print(k, v['state']) for k, v in led.get('entries', {}).items()]"
-```
-
-If your target (e.g. `notion.so`) isn't there, add it:
-
-```powershell
-python -c "from src.lib import ledger; led = ledger.load(); led.setdefault('entries', {})['notion.so'] = {'rp_id': 'notion.so', 'canonical_origin': 'https://www.notion.so/', 'signup_url': 'https://www.notion.so/signup', 'state': 'pending'}; ledger.save(led); print('added notion.so')"
-```
-
-If it's in a terminal state from a previous run, reset it:
-
-```powershell
-python -c "from src.lib import ledger; led = ledger.load(); led['entries']['notion.so']['state'] = 'pending'; ledger.save(led)"
-```
-
-### 2. Sign up
-
-```powershell
-python -m scripts.manual_signup --rp notion.so
-```
-
-When done, the ledger entry should be `captured` and `browser-profiles/notion.so/` should
-be a logged-in Chrome profile.
-
-### 3. Make sure hook Chrome is running
-
-If not already running:
-
-```powershell
-& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
-  --remote-debugging-port=9222 `
-  --user-data-dir="C:\chrome-hook-profile"
-```
-
-### 4. Observe the passkey enrollment
-
-```powershell
-python -m src.hook.run --rp notion.so --enroll-url https://www.notion.so/my-account
-```
-
-### Viewing results
-
-- **Signup artifacts:** `artifacts/<rp>/<timestamp>-result.json` — outcome, note, and any
-  evidence screenshot.
-- **Hook-run artifacts:** `artifacts/hook-runs/<rp>/<timestamp>/` — network and console
-  captures from `src.hook.run`, plus `observer_log.json` (the hook's structured event log)
-  and the advertised params it yields.
-- **Ledger:** `data/ledger.json` — terminal state and history per RP (plus
-  `advertised_params` once a hook run has recorded them).
-- **Batch log:** `data/batch_log.jsonl` — one line per recorded run.
-
-### Resetting a single RP
-
-```powershell
-Remove-Item artifacts\notion.so -Recurse -ErrorAction SilentlyContinue
-Remove-Item artifacts\hook-runs\notion.so -Recurse -ErrorAction SilentlyContinue
-python -c "from src.lib import ledger; led = ledger.load(); led['entries']['notion.so']['state'] = 'pending'; ledger.save(led)"
-```
-
-Then re-run from step 2.
-
-## Project Structure
+## Structure
 
 ```
 src/
-├── init.py                   # Ledger initialization from targets CSV
-├── report.py                 # Summarize ledger / batch-log results
-├── hook/                     # Manual observation harness
-│   ├── run.py
-│   └── __init__.py
-└── lib/                      # Shared utilities
-    ├── browser.py            # Playwright launch helpers (persistent per-RP profiles)
-    ├── imap_poll.py          # Verification email polling (IMAP)
-    ├── autofill.py           # Best-effort signup-form autofill + consent-box ticking
-    ├── page_scan.py          # Read-only blocker/auth-surface scan (outcome hints)
-    ├── consent.py            # Cookie/consent banner dismissal + checkbox classifier
-    ├── credentials.py        # Per-RP credential derivation (from identity.json)
-    ├── detect.py             # Page-state detection heuristics
-    ├── ledger.py             # Ledger read/write/state transitions
-    ├── outcomes.py           # Valid outcome set + retry policy
-    ├── parse.py              # CSV parsing
-    ├── run_record.py         # Shared run-record writers (ledger/artifact/batch log)
-    ├── webauthn_params.py    # Advertised-params extract + ledger/CSV projection
-    └── triage.py             # RP triage (banks, auth subdomains, etc.)
-
+  init.py, report.py
+  hook/run.py            # manual hook-observation harness (attaches to extension-loaded Chrome)
+  lib/
+    browser.py           # real-Chrome launcher: anti-detection, ephemeral profiles
+    imap_poll.py         # IMAP verification-code polling
+    autofill.py consent.py page_scan.py credentials.py detect.py   # manual-signup assist
+    ledger.py outcomes.py webauthn_params.py run_record.py parse.py triage.py
 scripts/
-├── manual_signup.py          # Manual signup + outcome recording (Playwright assist)
-├── manual_launch.py          # Manual signup in a plain real Chrome (heavily-defended RPs)
-└── fetch_code.py             # Fetch verification codes from IMAP
-
+  manual_signup.py       # manual signup (Playwright assist)
+  manual_launch.py       # manual signup in a plain real Chrome (defended RPs)
+  fetch_code.py          # IMAP code fetch
+  record_path.py         # record a login / login+add-passkey click path  (--hook for the hook)
+  replay_passkey.py      # replay it; --hook = register fabricated passkey + observe/record
+  hook_bridge.py         # persistence backend for the injected hook (data/fab_keys.json)
 data/
-├── targets.csv               # Input: target RPs
-├── ledger.json               # Audit state (auto-generated)
-└── batch_log.jsonl           # One line per recorded run
-
-artifacts/
-├── <rp>/                     # Signup outcome artifacts + screenshots
-└── hook-runs/                # Manual hook harness run artifacts
-
-browser-profiles/             # Persistent profile dirs for per-RP browsers (Playwright)
-browser-profiles-manual/      # Clean real-Chrome profiles for manual_launch.py
+  targets.csv ledger.json batch_log.jsonl experiments.csv
+  targets_selected_status.csv   # advertised-params (adv_*) per RP
+  paths/<rp>.json               # recorded click paths
+  fab_keys.json                 # fabricated private keys (gitignored)
+artifacts/                      # signup outcomes, hook-runs/, passkey/
+browser-profiles-manual/        # clean real-Chrome profiles for manual_launch.py
 ```
-
-## Data Flow
-
-1. `data/targets.csv` → `python -m src.init` → `data/ledger.json` (one entry per RP, triaged).
-2. `python -m scripts.manual_signup` → you create the account in its persistent browser
-   profile; ledger state → `captured` (or a blocker outcome).
-3. `python -m src.hook.run` → attach to hook Chrome (already logged in), drive passkey
-   creation by hand, and capture hook + network traffic under `artifacts/hook-runs/`.
 
 ## Troubleshooting
 
-### Chrome connection issues (hook harness)
-
-- Verify Chrome is running with `--remote-debugging-port=9222`.
-- Check that port 9222 is bound: `netstat -ano | findstr :9222`.
-- Confirm `hook.js` is loaded in that profile (`chrome://extensions`).
-
-### "no extension context detected" but extension loads manually
-
-Chrome stable (130+) disabled `--load-extension` via command line. Attach to a Chrome you
-launched manually with the extension already installed — don't try to load the extension
-through Playwright.
-
-### Hook Chrome lands on a login page
-
-The hook Chrome profile (step 5 above) isn't logged into the RP. Log in there by hand —
-that profile persists, so you only need to do it once per RP.
-
-### IMAP fetch finds nothing
-
-- Confirm `IMAP_USER` / `IMAP_PASS` are set in `.env` (Gmail needs an app password).
-- Widen the search window with `--lookback` / `--timeout`, and use `--newer-than` after a
-  Resend to skip a stale code.
-- Codes are matched from both the subject and body; if the wrong number is picked up,
-  forward the email body so the body patterns can be tightened.
-
-### Signup browser hangs, or the CAPTCHA never resolves
-
-Heavy consent walls (e.g. onet.pl) and aggressive bot-detection are expected on some RPs.
-`manual_signup` bounds navigation and each assist step, so it won't freeze — it hands you
-control within ~30s (you may see `⚠ … skipped; continuing` lines; that's normal). If an
-RP's CAPTCHA loops forever in the Playwright browser, retry it in a real Chrome with
-`scripts/manual_launch.py`, or record it as `captcha-blocked` and move on.
+- **Hook extension not detected (manual):** Chrome 137+ disabled `--load-extension` via CLI —
+  attach to a Chrome you loaded the extension into by hand; don't load it through Playwright.
+- **Automated replay blocked / challenged:** repeated attempts burn the egress IP's reputation
+  (Cloudflare/Akamai). Switch network or wait — the browser fingerprint itself is clean.
+- **`replay_passkey --hook` registers but login fails:** the fabricated key must persist —
+  `hook_bridge` writes it to `data/fab_keys.json`. If that's empty, the hook logged
+  `persistKey.failed` (bridge not wired).
+- **IMAP finds nothing:** check `.env` creds (Gmail needs an app password); use `--newer-than`
+  after a Resend to skip a stale code.

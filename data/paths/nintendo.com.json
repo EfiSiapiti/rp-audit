@@ -1,6 +1,7 @@
 {
   "rp_id": "nintendo.com",
   "login_url": "https://accounts.nintendo.com/login",
+  "success_url": "https://accounts.nintendo.com/portal",
   "steps": [
     {
       "kind": "navigate",
@@ -24,25 +25,100 @@
       "frame_url": "https://accounts.nintendo.com/login",
       "text": "Sign in"
     },
-    {
-      "kind": "navigate",
-      "url": "https://accounts.nintendo.com/challenge/email?post_challenge_redirect_uri=https%3A%2F%2Faccounts.nintendo.com%2F"
-    },
+    
     {
       "kind": "fill",
       "selector": "#challenge_form_pc_input_0",
-      "frame_url": "https://accounts.nintendo.com/challenge/email?post_challenge_redirect_uri=https%3A%2F%2Faccounts.nintendo.com%2F",
       "field": "otp"
     },
     {
       "kind": "click",
       "selector": "#challenge_form_pc_button_0",
-      "frame_url": "https://accounts.nintendo.com/challenge/email?post_challenge_redirect_uri=https%3A%2F%2Faccounts.nintendo.com%2F",
       "text": "Verify"
     },
     {
       "kind": "navigate",
       "url": "https://accounts.nintendo.com/"
+    },
+    {
+      "kind": "click",
+      "selector": "#navigation-v2-pc_loginSecurity",
+      "frame_url": "https://accounts.nintendo.com/",
+      "text": "Sign-in and security settings"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/#loginSecurity"
+    },
+    {
+      "kind": "click",
+      "selector": "#account-configuration-v2-pc_loginSecurity_passkeyAction",
+      "frame_url": "https://accounts.nintendo.com/#loginSecurity",
+      "text": "Edit"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/passkey"
+    },
+    {
+      "kind": "click",
+      "selector": "#passkey_pc_button_1",
+      "frame_url": "https://accounts.nintendo.com/passkey",
+      "text": "Register a New Passkey"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/passkey/register?from=INDEX"
+    },
+    {
+      "kind": "click",
+      "selector": "#passkey-register-form_pc_button_0",
+      "frame_url": "https://accounts.nintendo.com/passkey/register?from=INDEX",
+      "text": "Register Passkey"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/passkey/register"
+    },
+    {
+      "kind": "click",
+      "selector": "#passkey-register-complete_pc_a_0",
+      "frame_url": "https://accounts.nintendo.com/passkey/register",
+      "text": "OK"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/portal"
+    },
+    {
+      "kind": "click",
+      "selector": "div[aria-label=\"efisiapi\"]",
+      "frame_url": "https://accounts.nintendo.com/portal",
+      "text": "efisiapi"
+    },
+    {
+      "kind": "click",
+      "selector": "header > div > div > div > a",
+      "frame_url": "https://accounts.nintendo.com/portal",
+      "text": "Sign out"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/logout?post_logout_redirect_uri=https%3A%2F%2Faccounts.nintendo.com%2Fportal"
+    },
+    {
+      "kind": "click",
+      "selector": "#logout-confirm-logout",
+      "frame_url": "https://accounts.nintendo.com/logout?post_logout_redirect_uri=https%3A%2F%2Faccounts.nintendo.com%2Fportal",
+      "text": "Sign out"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/login?post_login_redirect_uri=https%3A%2F%2Faccounts.nintendo.com%2Fportal"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accounts.nintendo.com/portal"
     }
   ]
 }

@@ -20,8 +20,10 @@ import re
 from pathlib import Path
 
 from src.lib import browser
+from scripts import hook_bridge
 
 PATHS_DIR = Path("data/paths")
+DEFAULT_HOOK = "../pwned-xploit/pwned-xploit/hook.js"
 
 # JS injected into every frame: capture clicks + committed field values.
 _RECORDER_JS = r"""
@@ -137,18 +139,27 @@ def _normalize(step: dict) -> dict:
 
 
 async def main() -> None:
-    ap = argparse.ArgumentParser(description="Record a login click path")
+    ap = argparse.ArgumentParser(description="Record a login (or login+add-passkey) click path")
     ap.add_argument("--rp", required=True)
     ap.add_argument("--login-url", required=True)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--hook", nargs="?", const=DEFAULT_HOOK, default=None,
+                    help="inject pwned-xploit hook.js so the Add-passkey ceremony fabricates "
+                         "create() in-page (no OS dialog), letting you record the full flow; "
+                         f"bare --hook uses {DEFAULT_HOOK}. Omit for login-only.")
     args = ap.parse_args()
 
+    if args.hook and not Path(args.hook).is_file():
+        raise SystemExit(f"hook.js not found: {args.hook}")
     out_path = Path(args.out) if args.out else PATHS_DIR / f"{args.rp}.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     steps: list[dict] = []
     page = await browser.ensure_browser_for(args.rp)  # real Chrome
     ctx = await browser.get_context()
+    if args.hook:
+        await hook_bridge.inject_hook(ctx, args.hook)  # hook + persistence bridge
+        print(f"  injected fabrication hook + persistence bridge: {args.hook}")
     await ctx.expose_binding("recordStep", lambda source, data: steps.append(data))
     await ctx.add_init_script(_RECORDER_JS)
 
@@ -163,24 +174,35 @@ async def main() -> None:
     await page.goto(args.login_url, wait_until="domcontentloaded", timeout=60_000)
 
     print("  ┌" + "─" * 66 + "┐")
-    print("  │  Drive the LOGIN by hand until you are signed in.               │")
-    print("  │  Every click / field / page-load is being recorded.            │")
-    print("  │  Press Enter here the moment you're logged in.                 │")
+    if args.hook:
+        print("  │  Drive the FULL lifecycle:                                      │")
+        print("  │    log in → passkey settings → Add passkey (hook fabricates,    │")
+        print("  │    no OS dialog) → log OUT → sign in WITH the passkey.          │")
+        print("  │  Press Enter once you're logged back in (on the dashboard).     │")
+    else:
+        print("  │  Drive the LOGIN by hand until you are signed in.               │")
+        print("  │  Every click / field / page-load is being recorded.            │")
+        print("  │  Press Enter here the moment you're logged in.                 │")
     print("  └" + "─" * 66 + "┘")
     try:
         await asyncio.to_thread(input, "  > ")
     except (KeyboardInterrupt, EOFError):
         print("\n  interrupted — saving what was captured")
 
+    # The page's current URL is the logged-in landing — the success URL replay
+    # checks it reached to decide the re-login verdict (reauth_ok).
+    success_url = page.url
     normalized = _dedupe([_normalize(s) for s in steps if s.get("kind")])
     out_path.write_text(json.dumps(
-        {"rp_id": args.rp, "login_url": args.login_url, "steps": normalized},
+        {"rp_id": args.rp, "login_url": args.login_url,
+         "success_url": success_url, "steps": normalized},
         indent=2), encoding="utf-8")
     n_click = sum(s["kind"] == "click" for s in normalized)
     n_fill = sum(s["kind"] == "fill" for s in normalized)
     n_nav = sum(s["kind"] == "navigate" for s in normalized)
     print(f"\n  ✓ saved {len(normalized)} steps "
           f"({n_nav} nav, {n_fill} fill, {n_click} click) → {out_path}")
+    print(f"    success_url: {success_url}")
     await browser.shutdown()
 
 

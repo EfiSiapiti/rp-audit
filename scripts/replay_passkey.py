@@ -5,13 +5,14 @@ password from credentials.py, email OTP re-fetched live via imap_poll — on rea
 Chrome (channel="chrome", the browser that passes bot detection). Leaves the
 window open at the end so you can inspect the logged-in state.
 
-Login-only for now. The passkey ceremony belongs here too and will be added
-later — both registration (navigator.credentials.create) and authentication
-(navigator.credentials.get) — reusing the step-replay helpers below
-(_replay_steps / _resolve_fill / _frame_for / load_steps).
+With --hook it also injects the pwned-xploit hook.js (no extension, real Chrome)
+so a recorded Add-passkey step fabricates navigator.credentials.create() in-page,
+and records the RP's response via src.hook.run's observation pipeline. Without
+--hook it is a plain login replay.
 
 Usage:
-    python -m scripts.replay_passkey --rp github.com
+    python -m scripts.replay_passkey --rp github.com                       # login only
+    python -m scripts.replay_passkey --rp github.com --hook --label ES256  # + passkey fabrication
 """
 from __future__ import annotations
 
@@ -20,13 +21,17 @@ import asyncio
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
-from src.lib import browser, credentials, imap_poll
+from src.lib import browser, credentials, imap_poll, ledger, webauthn_params
+from src.hook import run as hookrun
+from scripts import hook_bridge
 
 PATHS_DIR = Path("data/paths")
 CLICK_DELAY_MS = 2000  # pause after each click so the page (and any SPA nav) settles
+DEFAULT_HOOK = "../pwned-xploit/pwned-xploit/hook.js"
 
 
 def _ts() -> str:
@@ -61,7 +66,7 @@ async def _resolve_fill(field: str, rp_id: str, literal, run_started) -> str | N
     return literal  # 'other'
 
 
-async def _replay_steps(page, steps: list[dict], rp_id: str, run_started) -> None:
+async def _replay_steps(page, steps: list[dict], rp_id: str, run_started, abort_check=None) -> None:
     for i, step in enumerate(steps, 1):
         kind = step.get("kind")
         try:
@@ -81,30 +86,153 @@ async def _replay_steps(page, steps: list[dict], rp_id: str, run_started) -> Non
             print(f"    [{i}/{len(steps)}] {kind} ok")
         except Exception as e:
             print(f"    [{i}/{len(steps)}] {kind} FAILED: {str(e).splitlines()[0][:90]}")
+        if abort_check:
+            reason = abort_check()
+            if reason:
+                print(f"    ⏹ stopping replay: {reason} (skipping the rest)")
+                return
 
 
-def load_steps(rp_id: str, path: str | None) -> list[dict]:
+def load_recorded(rp_id: str, path: str | None) -> dict:
     path_file = Path(path) if path else PATHS_DIR / f"{rp_id}.json"
     if not path_file.is_file():
         raise SystemExit(f"recorded path not found: {path_file} (run record_path.py first)")
-    return json.loads(path_file.read_text(encoding="utf-8")).get("steps") or []
+    return json.loads(path_file.read_text(encoding="utf-8"))
+
+
+def load_steps(rp_id: str, path: str | None) -> list[dict]:
+    return load_recorded(rp_id, path).get("steps") or []
+
+
+def _url_matches(cur: str, target: str) -> bool:
+    """True if `cur` is the same page as `target` (scheme+host+path, ignoring
+    query/hash) — used to check re-login landed on the recorded success URL."""
+    if not cur or not target:
+        return False
+    a, b = urlparse(cur), urlparse(target)
+    return (a.scheme, a.netloc, a.path.rstrip("/")) == (b.scheme, b.netloc, b.path.rstrip("/"))
+
+
+def _event_types(captured: dict) -> set[str]:
+    return {e.get("eventType") for e in (captured.get("console_events") or [])}
+
+
+def _register_failed(captured: dict) -> str | None:
+    """Abort signal: the create() ceremony failed client-side (so don't attempt
+    the logout/re-login steps that follow)."""
+    if "create.failed" in _event_types(captured):
+        return "registration create() failed"
+    return None
+
+
+def _register_ok(captured: dict) -> bool:
+    return bool(_event_types(captured) & {"fabrication.success", "create.success"})
+
+
+async def _record(captured: dict, ctx, artifacts_dir: Path, rp_id: str,
+                  label: str | None, run_started_iso: str, reauth_ok=None) -> None:
+    """Collect the hook log, dump artifacts, persist params — reuses src.hook.run.
+    Observation is via the injected hook's console events (the storage bridge is
+    absent without the extension), folded into the observer log as a (console) frame."""
+    try:
+        live = await hookrun._collect_observer_logs(ctx)
+        persisted = await hookrun._load_persisted_logs(ctx)
+        pending = list(captured.get("_console_tasks") or [])
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+        ce = captured.get("console_events") or []
+        frames = hookrun._dedupe_frame_blocks((live or []) + (persisted or []))
+        if ce:
+            frames = frames + [{"frame_url": "(console)", "entries": ce}]
+        captured["observer_log"] = frames or None
+    except Exception as e:
+        print(f"  observer-log collection failed: {e}")
+    try:
+        hookrun._dump_capture(captured, artifacts_dir)
+    except Exception as e:
+        print(f"  capture dump failed: {e}")
+    try:
+        params = webauthn_params.extract_advertised(
+            captured.get("observer_log"),
+            {"requests": captured.get("requests"), "responses": captured.get("responses")},
+            since_iso=run_started_iso, rp_id=rp_id)
+        if not params:
+            print("  no create.called event captured — did the Add-passkey step run + hook fire?")
+            return
+        ledger.record_advertised_params(rp_id, params, artifact=str(artifacts_dir))
+        led = ledger.load()
+        stored = led.get("entries", {}).get(rp_id, {}).get("advertised_params", params)
+        webauthn_params.upsert_status_csv(rp_id, stored)
+        exp_row = webauthn_params.flatten_experiment_columns(
+            stored, rp_id=rp_id, label=label, artifact=str(artifacts_dir))
+        exp_row["reauth_ok"] = "" if reauth_ok is None else str(reauth_ok)
+        webauthn_params.append_experiment(exp_row)
+        print(f"  ✓ recorded → ledger[{rp_id}] + {webauthn_params.DEFAULT_STATUS_CSV} "
+              f"+ {webauthn_params.DEFAULT_EXPERIMENTS_CSV} "
+              f"(label={label or '-'}, result={exp_row['srv_result'] or exp_row['fab_outcome'] or '-'}, "
+              f"reauth_ok={exp_row['reauth_ok'] or '-'})")
+    except Exception as e:
+        print(f"  record failed: {e}")
 
 
 async def main() -> None:
-    ap = argparse.ArgumentParser(description="Replay a recorded login on real Chrome")
+    ap = argparse.ArgumentParser(description="Replay a recorded login/passkey path on real Chrome")
     ap.add_argument("--rp", required=True)
     ap.add_argument("--path", default=None, help="recorded path json (default data/paths/<rp>.json)")
+    ap.add_argument("--hook", nargs="?", const=DEFAULT_HOOK, default=None,
+                    help="inject pwned-xploit hook.js to fabricate create() on the recorded "
+                         f"Add-passkey step and record the result; bare --hook uses {DEFAULT_HOOK}")
+    ap.add_argument("--label", default=None, help="experiment label for data/experiments.csv")
     args = ap.parse_args()
 
+    if args.hook and not Path(args.hook).is_file():
+        raise SystemExit(f"hook.js not found: {args.hook}")
     load_dotenv()
-    steps = load_steps(args.rp, args.path)
+    recorded = load_recorded(args.rp, args.path)
+    steps = recorded.get("steps") or []
+    success_url = recorded.get("success_url")
     run_started = datetime.now(timezone.utc)
 
-    print(f"\n→ replay login for {args.rp} ({len(steps)} steps, real Chrome)")
-    page = await browser.ensure_browser_for(args.rp)  # no extension → real Chrome
-    await _replay_steps(page, steps, args.rp, run_started)
+    mode = "passkey" if args.hook else "login"
+    print(f"\n→ replay {mode} for {args.rp} ({len(steps)} steps, real Chrome)")
+    page = await browser.ensure_browser_for(args.rp)  # real Chrome, no extension
+    ctx = await browser.get_context()
 
-    print("\n✓ login replay done — window left open")
+    captured = None
+    abort_check = None
+    if args.hook:
+        # Inject the fabrication hook + persistence bridge into the MAIN world
+        # before any RP navigation, then observe. The bridge (hook_bridge) carries
+        # the fabricated private key to data/fab_keys.json so a key registered in
+        # one run can authenticate in a later run.
+        await hook_bridge.inject_hook(ctx, args.hook)
+        print(f"  injected fabrication hook + persistence bridge: {args.hook}")
+        captured = hookrun._new_capture()
+        hookrun._attach_listeners(page, captured)
+        ctx.on("page", lambda p: hookrun._attach_listeners(p, captured))
+        # Stop before the logout/re-login steps if registration fails client-side.
+        abort_check = lambda: _register_failed(captured)  # noqa: E731
+
+    await _replay_steps(page, steps, args.rp, run_started, abort_check=abort_check)
+
+    if args.hook:
+        await page.wait_for_timeout(1500)  # let fabrication.* + finish settle
+        # Re-login verdict: only when registration succeeded and we have a
+        # recorded success URL to compare the final landing against.
+        reauth_ok = None
+        if not _register_ok(captured):
+            print("  registration did not succeed — skipping re-login verdict")
+        elif success_url:
+            reauth_ok = _url_matches(page.url, success_url)
+            print(f"  re-login verdict: reauth_ok={reauth_ok}  "
+                  f"(landed {page.url!r} vs success {success_url!r})")
+        else:
+            print("  no success_url recorded — re-login verdict unavailable")
+        artifacts_dir = Path(f"artifacts/passkey/{args.rp}/{args.label or 'run'}/{_ts()}")
+        await _record(captured, ctx, artifacts_dir, args.rp, args.label,
+                      run_started.isoformat(), reauth_ok=reauth_ok)
+
+    print(f"\n✓ {mode} replay done — window left open")
     try:
         await asyncio.to_thread(input, "  press Enter to close the browser… ")
     except (KeyboardInterrupt, EOFError):

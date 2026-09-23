@@ -82,6 +82,8 @@ EXPERIMENT_COLUMNS = [
     "srv_status",
     "srv_result",
     "srv_message",
+    # re-login verdict: did the fabricated passkey authenticate? (replay_passkey --hook)
+    "reauth_ok",
     "artifact",
 ]
 

@@ -5,6 +5,7 @@ browser-profiles/
 browser-profiles-manual/
 artifacts/
 data/ledger.json
+data/fab_keys.json
 __pycache__/
 *.pyc
 .venv/

@@ -1,10 +1,110 @@
 {
   "rp_id": "github.com",
   "login_url": "https://github.com/login",
+  "success_url": "https://github.com/",
   "steps": [
-    { "kind": "navigate", "url": "https://github.com/login" },
-    { "kind": "fill", "selector": "#login_field", "frame_url": null, "field": "email" },
-    { "kind": "fill", "selector": "#password", "frame_url": null, "field": "password" },
-    { "kind": "click", "selector": "input[name=\"commit\"]", "frame_url": null, "text": "Sign in" }
+    {
+      "kind": "navigate",
+      "url": "https://github.com/login"
+    },
+    {
+      "kind": "fill",
+      "selector": "#login_field",
+      "frame_url": "https://github.com/login",
+      "field": "email"
+    },
+    {
+      "kind": "fill",
+      "selector": "#password",
+      "frame_url": "https://github.com/login",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "input[name=\"commit\"]",
+      "frame_url": "https://github.com/login",
+      "text": "Sign in"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://github.com/"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://github.com/settings/security"
+    },
+    {
+      "kind": "click",
+      "selector": "li:nth-of-type(3) > div > div > div:nth-of-type(2) > a",
+      "frame_url": "https://github.com/settings/security",
+      "text": "Add passkey"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://github.com/sessions/trusted-device?return_to=%2Fsettings%2Fsecurity"
+    },
+    {
+      "kind": "click",
+      "selector": "#login > div:nth-of-type(2) > div:nth-of-type(1) > form > button",
+      "frame_url": "https://github.com/sessions/trusted-device?return_to=%2Fsettings%2Fsecurity",
+      "text": "Add passkey"
+    },
+    {
+      "kind": "fill",
+      "selector": "#nickname",
+      "frame_url": "https://github.com/sessions/trusted-device?return_to=%2Fsettings%2Fsecurity",
+      "field": "other",
+      "value": "key_test_pawnd"
+    },
+    {
+      "kind": "click",
+      "selector": "#login > div:nth-of-type(2) > div:nth-of-type(3) > form > button",
+      "frame_url": "https://github.com/sessions/trusted-device?return_to=%2Fsettings%2Fsecurity",
+      "text": "Done"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://github.com/settings/security"
+    },
+    {
+      "kind": "click",
+      "selector": "header > div > div:nth-of-type(3) > div:nth-of-type(3) > button",
+      "frame_url": "https://github.com/settings/security",
+      "text": ""
+    },
+    {
+      "kind": "click",
+      "selector": "#_r_12_",
+      "frame_url": "https://github.com/settings/security",
+      "text": "Sign out"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://github.com/logout"
+    },
+    {
+      "kind": "click",
+      "selector": "input[name=\"commit\"]",
+      "frame_url": "https://github.com/logout",
+      "text": "Sign out from all accounts"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://github.com/"
+    },
+    {
+      "kind": "click",
+      "selector": "div:nth-of-type(2) > div > div > div:nth-of-type(2) > a",
+      "frame_url": "https://github.com/",
+      "text": "Sign in"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://github.com/login"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://github.com/"
+    }
   ]
 }
