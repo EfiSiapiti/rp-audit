@@ -1,19 +1,15 @@
-"""Record a login + add-passkey click path once, for later automated replay.
+"""Record a login click path once, for later automated replay.
 
-You drive the ceremony by hand ONCE (with the hook extension loaded, so
-navigator.credentials.create() is fabricated in-page and no OS dialog appears);
-this captures your clicks, field fills, and full-page navigations into
-data/paths/<rp>.json. replay_controls.py then re-runs that path automatically
-for each control, so you don't repeat the flow 9x.
+You drive the login by hand ONCE; this captures your clicks, field fills, and
+full-page navigations into data/paths/<rp>.json, which replay_passkey.py then
+re-runs automatically (password + email OTP resolved live).
 
 Secrets are never written to disk: password/OTP fields are classified and stored
 as a field TYPE only (resolved live on replay); email likewise; other fields
 keep their literal value.
 
 Usage:
-    python -m scripts.record_path --rp canva.com \
-        --login-url https://www.canva.com/login/ \
-        --extension ../pwned-xploit/pwned-xploit/rsa-legit
+    python -m scripts.record_path --rp github.com --login-url https://github.com/login
 """
 from __future__ import annotations
 
@@ -141,22 +137,17 @@ def _normalize(step: dict) -> dict:
 
 
 async def main() -> None:
-    ap = argparse.ArgumentParser(description="Record a login+add-passkey click path")
+    ap = argparse.ArgumentParser(description="Record a login click path")
     ap.add_argument("--rp", required=True)
     ap.add_argument("--login-url", required=True)
-    ap.add_argument("--extension", default=None,
-                    help="hook extension dir; OMIT to record on real Chrome (no hook, "
-                         "passes Cloudflare) — use this for login-only recording")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    if args.extension and not Path(args.extension).is_dir():
-        raise SystemExit(f"extension dir not found: {args.extension}")
     out_path = Path(args.out) if args.out else PATHS_DIR / f"{args.rp}.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     steps: list[dict] = []
-    page = await browser.ensure_browser_for(args.rp, extension_dir=args.extension)
+    page = await browser.ensure_browser_for(args.rp)  # real Chrome
     ctx = await browser.get_context()
     await ctx.expose_binding("recordStep", lambda source, data: steps.append(data))
     await ctx.add_init_script(_RECORDER_JS)
@@ -172,9 +163,9 @@ async def main() -> None:
     await page.goto(args.login_url, wait_until="domcontentloaded", timeout=60_000)
 
     print("  ┌" + "─" * 66 + "┐")
-    print("  │  Drive it by hand: log in, open passkey settings, Add passkey.  │")
+    print("  │  Drive the LOGIN by hand until you are signed in.               │")
     print("  │  Every click / field / page-load is being recorded.            │")
-    print("  │  Press Enter here when the passkey is registered.              │")
+    print("  │  Press Enter here the moment you're logged in.                 │")
     print("  └" + "─" * 66 + "┘")
     try:
         await asyncio.to_thread(input, "  > ")
