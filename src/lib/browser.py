@@ -47,14 +47,17 @@ def _ephemeral_profile_dir(rp_id: str) -> Path:
 
 
 def _merge_chrome_prefs(prefs_path: Path) -> None:
-    """Re-assert the password-manager / autofill suppression keys every launch.
+    """Re-assert the password-manager / autofill / permission-prompt suppression
+    keys every launch.
 
     Each launch uses a fresh temp profile, so this normally writes into a
     new Preferences file. Merge (rather than overwrite) the keys anyway so
     that if Chrome has already written a Preferences file this run, the
     "Save password?" bubble — which can sit on top of the form and block
     submission — stays suppressed; preserve everything else and tolerate a
-    missing/corrupt file.
+    missing/corrupt file. Also default-blocks notification/geolocation prompts
+    (a site's "Show notifications?" bubble would otherwise cover buttons and
+    break a replay click).
     """
     data: dict = {}
     if prefs_path.exists():
@@ -71,6 +74,14 @@ def _merge_chrome_prefs(prefs_path: Path) -> None:
         profile = {}
     profile["password_manager_enabled"] = False
     profile["password_manager_leak_detection"] = False
+    # Auto-deny permission prompts (2 = block) so "Show notifications?" /
+    # location bubbles never cover the page or intercept a replay click.
+    csv = profile.get("default_content_setting_values")
+    if not isinstance(csv, dict):
+        csv = {}
+    csv["notifications"] = 2
+    csv["geolocation"] = 2
+    profile["default_content_setting_values"] = csv
     data["profile"] = profile
     autofill = data.get("autofill")
     if not isinstance(autofill, dict):

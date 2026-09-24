@@ -1,46 +1,140 @@
 {
   "rp_id": "facebook.com",
-  "login_url": "https://www.facebook.com/login/",
+  "login_url": "https://facebook.com",
+  "success_url": "https://accountscenter.facebook.com/passkey/management",
   "steps": [
     {
       "kind": "navigate",
-      "url": "https://www.facebook.com/login/"
+      "url": "https://www.facebook.com/"
     },
     {
       "kind": "click",
       "selector": "div[aria-label=\"Decline\\ optional\\ cookies\"]",
-      "frame_url": "https://www.facebook.com/login/",
+      "frame_url": "https://www.facebook.com/",
       "text": "Decline optional cookies"
     },
     {
       "kind": "click",
       "selector": "#facebook > body",
-      "frame_url": "https://www.facebook.com/login/",
+      "frame_url": "https://www.facebook.com/",
       "text": "Explore the things you love.\nLog into Fa"
     },
     {
       "kind": "fill",
-      "selector": "#_r_2_",
-      "frame_url": "https://www.facebook.com/login/",
+      "selector": "input[name=\"email\"]",
+      "frame_url": "https://www.facebook.com/",
       "field": "email"
     },
     {
       "kind": "click",
       "selector": "#facebook > body",
-      "frame_url": "https://www.facebook.com/login/",
+      "frame_url": "https://www.facebook.com/",
       "text": "Explore the things you love.\nLog into Fa"
     },
     {
       "kind": "fill",
-      "selector": "#_r_5_",
-      "frame_url": "https://www.facebook.com/login/",
+      "selector": "input[name=\"pass\"]",
+      "frame_url": "https://www.facebook.com/",
       "field": "password"
     },
     {
       "kind": "click",
       "selector": "div[aria-label=\"Log\\ In\"]",
-      "frame_url": "https://www.facebook.com/login/",
+      "frame_url": "https://www.facebook.com/",
       "text": "Log in"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accountscenter.facebook.com/passkey/management"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Create passkey\"",
+      "text": "Create passkey"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Create passkey\"",
+      "text": "Create passkey"
+    },
+    {
+      "kind": "fill",
+      "selector": "input[autocomplete=\"off\"]",
+      "frame_url": "https://accountscenter.facebook.com/passkey/management",
+      "field": "otp"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Continue\"",
+      "frame_url": "https://accountscenter.facebook.com/passkey/management",
+      "text": "Continue"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.facebook.com/"
+    },
+    {
+      "kind": "click",
+      "selector": "div[aria-label=\"Your\\ profile\"]",
+      "frame_url": "https://www.facebook.com/",
+      "text": ""
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Log out\"",
+      "frame_url": "https://www.facebook.com/",
+      "text": "Log out"
+    },
+    {
+      "kind": "click",
+      "selector": "div[aria-label=\"Use\\ another\\ profile\"]",
+      "text": "Use another profile"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.facebook.com/?lsrc=cf"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.facebook.com/"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://accountscenter.facebook.com/passkey/management"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Remove\"",
+      "text": "Remove"
+    },
+        {
+      "kind": "click",
+      "selector": "text=\"Remove\"",
+      "text": "Remove"
+    },
+    {
+      "kind": "click",
+      "selector": "body > div:nth-of-type(7) > div:nth-of-type(1) > div > div:nth-of-type(2)",
+      "frame_url": "https://accountscenter.facebook.com/passkey/management",
+      "text": "Authenticity Verification"
+    },
+    {
+      "kind": "fill",
+      "selector": "input[autocomplete=\"one-time-code\"]",
+      "frame_url": "https://accountscenter.facebook.com/passkey/management",
+      "field": "otp"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Next\"",
+      "frame_url": "https://accountscenter.facebook.com/passkey/management",
+      "text": "Next"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Done\"",
+      "frame_url": "https://accountscenter.facebook.com/passkey/management",
+      "text": "Done"
     }
   ]
 }

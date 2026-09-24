@@ -19,7 +19,7 @@ import json
 import re
 from pathlib import Path
 
-from src.lib import browser
+from src.lib import browser, ledger
 from scripts import hook_bridge
 
 PATHS_DIR = Path("data/paths")
@@ -34,7 +34,9 @@ _RECORDER_JS = r"""
   function isStable(v){
     if(!v) return false;
     if(/\d{4,}/.test(v)) return false;
-    if(/^:r[0-9a-z]+:$/i.test(v)) return false;
+    if(/^:r[0-9a-z]+:$/i.test(v)) return false;         // React useId :r0:
+    if(/^_+r_?\d/i.test(v)) return false;               // React useId _r_2_ (Facebook)
+    if(/^«.+»$/.test(v)) return false;                  // React useId «r0»
     if(/[0-9a-f]{8,}/i.test(v)) return false;
     if(/^(mui-|radix-|headlessui-|ember|ext-gen|:r|__)/i.test(v)) return false;
     return true;
@@ -58,7 +60,14 @@ _RECORDER_JS = r"""
     }
     // 5. aria-label / placeholder
     for(const a of ['aria-label','placeholder']){ const s=attr(el,a); if(s) return tag+'['+s+']'; }
-    // 6. last resort: short structural path, anchored at the nearest stable id
+    // 6. a short text label — far more stable than a deep structural path
+    //    (Facebook's buttons are attribute-less nested divs). For a CLICKABLE
+    //    element, target IT via role/tag + :has-text so the click lands on the
+    //    button (and its click-capturing overlay), not a deep text node inside
+    //    it that sits behind that overlay. Plain text= for non-clickable labels.
+    const txt = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+    if(txt && txt.length <= 40) return 'text=' + JSON.stringify(txt);
+    // 7. last resort: short structural path, anchored at the nearest stable id
     let path=[], node=el;
     while(node && node.nodeType===1 && path.length<5){
       if(node.id && isStable(node.id)){ path.unshift('#'+CSS.escape(node.id)); break; }
@@ -95,13 +104,18 @@ _RECORDER_JS = r"""
 """
 
 
-def _classify(attrs: dict) -> str:
+def _classify(attrs: dict, value: str = "") -> str:
     t = (attrs.get("type") or "").lower()
     ac = (attrs.get("autocomplete") or "").lower()
     tag = f"{attrs.get('name','')} {attrs.get('id','')}".lower()
     if t == "password":
         return "password"
     if ac == "one-time-code" or re.search(r"otp|code|verif|token", tag):
+        return "otp"
+    # Value heuristic: a short all-digits value is almost certainly a verification
+    # code (fetched live from IMAP on replay), even when the field's attributes give
+    # no hint — e.g. Facebook's autocomplete="off" code input.
+    if re.fullmatch(r"\d{4,8}", (value or "").strip()):
         return "otp"
     if t == "email" or ac in ("email", "username") or re.search(r"email|username|login|\buser\b", tag):
         return "email"
@@ -126,7 +140,7 @@ def _dedupe(steps: list[dict]) -> list[dict]:
 
 def _normalize(step: dict) -> dict:
     if step.get("kind") == "fill":
-        field = _classify(step.get("attrs") or {})
+        field = _classify(step.get("attrs") or {}, step.get("value"))
         out = {"kind": "fill", "selector": step.get("selector"),
                "frame_url": step.get("frame"), "field": field}
         if field == "other":            # keep only non-secret literals
@@ -141,7 +155,9 @@ def _normalize(step: dict) -> dict:
 async def main() -> None:
     ap = argparse.ArgumentParser(description="Record a login (or login+add-passkey) click path")
     ap.add_argument("--rp", required=True)
-    ap.add_argument("--login-url", required=True)
+    ap.add_argument("--login-url", default=None,
+                    help="where to start; defaults to the RP's canonical origin "
+                         "(ledger.origin_for) so you can just drive to the login form yourself")
     ap.add_argument("--out", default=None)
     ap.add_argument("--hook", nargs="?", const=DEFAULT_HOOK, default=None,
                     help="inject pwned-xploit hook.js so the Add-passkey ceremony fabricates "
@@ -169,9 +185,10 @@ async def main() -> None:
     _attach_nav(page)
     ctx.on("page", _attach_nav)
 
+    start_url = args.login_url or ledger.origin_for(args.rp)
     print(f"\n→ recording path for {args.rp}")
-    print(f"  navigating to {args.login_url}")
-    await page.goto(args.login_url, wait_until="domcontentloaded", timeout=60_000)
+    print(f"  navigating to {start_url}" + ("" if args.login_url else "  (RP origin — drive to the login form)"))
+    await page.goto(start_url, wait_until="domcontentloaded", timeout=60_000)
 
     print("  ┌" + "─" * 66 + "┐")
     if args.hook:
@@ -194,7 +211,7 @@ async def main() -> None:
     success_url = page.url
     normalized = _dedupe([_normalize(s) for s in steps if s.get("kind")])
     out_path.write_text(json.dumps(
-        {"rp_id": args.rp, "login_url": args.login_url,
+        {"rp_id": args.rp, "login_url": start_url,
          "success_url": success_url, "steps": normalized},
         indent=2), encoding="utf-8")
     n_click = sum(s["kind"] == "click" for s in normalized)

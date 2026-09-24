@@ -30,7 +30,9 @@ from src.hook import run as hookrun
 from scripts import hook_bridge
 
 PATHS_DIR = Path("data/paths")
-CLICK_DELAY_MS = 2000  # pause after each click so the page (and any SPA nav) settles
+CLICK_DELAY_MS = 2000        # pause after a click so the page (and any SPA nav) settles
+POST_CLICK_NAV_MS = 10000     # longer pause when the NEXT step navigates, so a login
+                             # redirect finishes establishing the session first
 DEFAULT_HOOK = "../pwned-xploit/pwned-xploit/hook.js"
 
 
@@ -47,7 +49,7 @@ def _frame_for(page, frame_url: str | None):
     return page  # fall back to main frame
 
 
-async def _resolve_fill(field: str, rp_id: str, literal, run_started) -> str | None:
+async def _resolve_fill(field: str, rp_id: str, literal, run_started, used_otps=None) -> str | None:
     if field == "email":
         return credentials.resolve("email", rp_id=rp_id)
     if field == "password":
@@ -55,18 +57,101 @@ async def _resolve_fill(field: str, rp_id: str, literal, run_started) -> str | N
     if field == "otp":
         secs = max(30, int((datetime.now(timezone.utc) - run_started).total_seconds()) + 15)
         found = await asyncio.to_thread(
-            imap_poll.find_verification, rp_id, newer_than_seconds=secs)
+            imap_poll.find_verification, rp_id, newer_than_seconds=secs,
+            exclude_values=list(used_otps or []), prefer_code=True)
+        if found:  # diagnostic: show exactly what IMAP matched, so we can pattern it
+            print(f"    · IMAP match: method={found.method}  from={found.sender!r}")
+            print(f"      subject: {found.subject!r}")
+            print(f"      excerpt: {found.raw_excerpt[:200]!r}")
+        else:
+            print("    · IMAP: no email matched this RP (check sender/subject relation)")
         if found and found.method == "code" and found.value:
+            if used_otps is not None:
+                used_otps.append(found.value)   # never reuse this code later in the run
             return found.value
         if found and found.method == "link":
-            print("    ⚠ IMAP found a magic LINK, not a code — this path needs a code field")
+            print("    ⚠ IMAP resolved a magic LINK, not a code — see subject/excerpt above")
         else:
-            print("    ⚠ no OTP found via IMAP — leaving field blank")
+            print("    ⚠ no OTP code found — leaving field blank")
         return None
     return literal  # 'other'
 
 
-async def _replay_steps(page, steps: list[dict], rp_id: str, run_started, abort_check=None) -> None:
+async def _locate(active_pg, ctx, main_pg, selector, tries=27):
+    """Find the locator for `selector` across every open window/frame, polling
+    for a VISIBLE match (~8s) so a modal/popup that renders a moment after the
+    prior click is found. Prefers a match inside an open dialog, then the LAST
+    visible match in the DOM (a modal renders after the page's now-hidden
+    duplicate), then any match; else the main page (Playwright auto-waits)."""
+    def _order():
+        order = [active_pg]
+        if ctx is not None:
+            order += [p for p in ctx.pages if p is not active_pg]
+        if main_pg not in order:
+            order.append(main_pg)
+        return order
+
+    def _scopes(pg):
+        try:
+            return [pg, *pg.frames]
+        except Exception:
+            return [pg]
+
+    async def _in_dialog():
+        for pg in _order():
+            for c in _scopes(pg):
+                try:
+                    dlg = c.locator('[role="dialog"],[aria-modal="true"]').last
+                    if await dlg.count():
+                        el = dlg.locator(selector).first
+                        if await el.count() and await el.is_visible():
+                            return el
+                except Exception:
+                    continue
+        return None
+
+    async def _last_visible():
+        for pg in _order():
+            for c in _scopes(pg):
+                try:
+                    m = c.locator(selector)
+                    for idx in range(await m.count() - 1, -1, -1):  # last→first
+                        el = m.nth(idx)
+                        if await el.is_visible():
+                            return el
+                except Exception:
+                    continue
+        return None
+
+    for _ in range(tries):
+        loc = await _in_dialog() or await _last_visible()
+        if loc:
+            return loc
+        await main_pg.wait_for_timeout(300)
+    # fallback: any match at all, else the main page
+    for pg in _order():
+        for c in _scopes(pg):
+            try:
+                loc = c.locator(selector).first
+                if await loc.count():
+                    return loc
+            except Exception:
+                continue
+    return main_pg.locator(selector).first
+
+
+async def _replay_steps(page, steps: list[dict], rp_id: str, run_started,
+                        abort_check=None, ctx=None) -> None:
+    # Track the active window: a popup that opens becomes active (so its steps
+    # target it even when it shares the main page's URL); reverts to main on close.
+    active = {"pg": page}
+    used_otps: list[str] = []  # codes already consumed this run — never reuse one
+    if ctx is not None:
+        def _on_page(p):
+            active["pg"] = p
+            p.on("close", lambda: active.__setitem__("pg", page))
+        ctx.on("page", _on_page)
+
     for i, step in enumerate(steps, 1):
         kind = step.get("kind")
         try:
@@ -74,18 +159,57 @@ async def _replay_steps(page, steps: list[dict], rp_id: str, run_started, abort_
                 url = step.get("url") or ""
                 if url and not (page.url or "").split("#")[0].startswith(url.split("#")[0]):
                     await page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                    # If a prior login is still settling, the RP bounces this nav
+                    # to its login page — wait and retry a few times before moving on.
+                    tgt_login = ("login" in url.lower() or "signin" in url.lower())
+                    for _ in range(4):
+                        cur = (page.url or "").lower()
+                        if not tgt_login and ("login" in cur or "signin" in cur or "login.php" in cur):
+                            print(f"       bounced to {page.url} — login still settling, retrying nav…")
+                            await page.wait_for_timeout(4000)
+                            try:
+                                await page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                            except Exception:
+                                break
+                        else:
+                            break
             elif kind == "click":
-                tgt = _frame_for(page, step.get("frame_url"))
-                await tgt.locator(step["selector"]).first.click(timeout=15_000)
-                await page.wait_for_timeout(CLICK_DELAY_MS)
+                before = set(ctx.pages) if ctx else set()
+                loc = await _locate(active["pg"], ctx, page, step["selector"])
+                try:
+                    await loc.click(timeout=8_000)
+                except Exception:
+                    # Actionability failed (e.g. Facebook's overlay-covered
+                    # buttons) — force the click at the element's center.
+                    await loc.click(timeout=6_000, force=True)
+                # Wait for any navigation the click triggered (login redirect /
+                # popup) to finish loading before the next step runs.
+                try:
+                    await page.wait_for_load_state("load", timeout=15_000)
+                except Exception:
+                    pass
+                if ctx:
+                    for np in [p for p in ctx.pages if p not in before]:
+                        try:
+                            await np.wait_for_load_state("load", timeout=15_000)
+                        except Exception:
+                            pass
+                # If the next step is a goto, give the session extra time to
+                # settle so we don't navigate while still mid-login.
+                next_nav = i < len(steps) and steps[i].get("kind") == "navigate"
+                await page.wait_for_timeout(POST_CLICK_NAV_MS if next_nav else CLICK_DELAY_MS)
             elif kind == "fill":
-                tgt = _frame_for(page, step.get("frame_url"))
-                val = await _resolve_fill(step.get("field"), rp_id, step.get("value"), run_started)
+                loc = await _locate(active["pg"], ctx, page, step["selector"])
+                val = await _resolve_fill(step.get("field"), rp_id, step.get("value"),
+                                          run_started, used_otps=used_otps)
                 if val is not None:
-                    await tgt.locator(step["selector"]).first.fill(val, timeout=15_000)
+                    await loc.fill(val, timeout=15_000)
             print(f"    [{i}/{len(steps)}] {kind} ok")
         except Exception as e:
             print(f"    [{i}/{len(steps)}] {kind} FAILED: {str(e).splitlines()[0][:90]}")
+            if kind == "click":
+                print("    ⏹ click failed — stopping replay (won't proceed on a broken step)")
+                return
         if abort_check:
             reason = abort_check()
             if reason:
@@ -213,7 +337,7 @@ async def main() -> None:
         # Stop before the logout/re-login steps if registration fails client-side.
         abort_check = lambda: _register_failed(captured)  # noqa: E731
 
-    await _replay_steps(page, steps, args.rp, run_started, abort_check=abort_check)
+    await _replay_steps(page, steps, args.rp, run_started, abort_check=abort_check, ctx=ctx)
 
     if args.hook:
         await page.wait_for_timeout(1500)  # let fabrication.* + finish settle

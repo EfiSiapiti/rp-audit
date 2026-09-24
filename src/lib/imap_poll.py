@@ -155,6 +155,15 @@ def _extract_code(body: str, subject: str = "") -> str | None:
             if m:
                 return m.group(1)
 
+    # A lone 5-8 digit number in the (clean, low-noise) subject is almost always
+    # the code, even when the phrasing isn't a labeled pattern — e.g. Facebook's
+    # "12345678 is your Facebook confirmation code" (the brand word breaks the
+    # label). Only one such run should appear in a subject.
+    if subject:
+        nums = re.findall(r"(?<![0-9])([0-9]{5,8})(?![0-9])", subject)
+        if len(nums) == 1:
+            return nums[0]
+
     # Body-only fallbacks — loose, so never run against the subject.
     # 4-8 digit code alone on a line (handles line breaks / whitespace).
     m = re.search(r"(?:^|\s)\s*([0-9]{4,8})\s+(?:\n|$)", body, flags=re.M)
@@ -296,6 +305,7 @@ def find_verification(
     lookback_minutes: int = 10,
     newer_than_seconds: int | None = None,
     exclude_values: list[str] | None = None,
+    prefer_code: bool = False,
 ) -> FoundVerification | None:
     """Poll IMAP until we find a verification email for this RP, or timeout.
 
@@ -359,6 +369,9 @@ def find_verification(
         # seen is keyed by (folder, uid) — UIDs are only unique within a folder.
         seen: set[tuple[str, int]] = set()
         search_arg = ["SINCE", since_dt.strftime("%d-%b-%Y")]
+        # When prefer_code, a link match is only a last resort — keep it here and
+        # keep polling for the code email (which often lands after a "confirm" link).
+        best_link: FoundVerification | None = None
         while time.time() < deadline:
             # Best (related) match wins immediately; otherwise the newest
             # recent code/link-bearing email is kept as a fallback.
@@ -396,6 +409,9 @@ def find_verification(
                         continue
                     if _is_related_to_rp(msg, rp_id):
                         # Sender/subject/body match the RP — strongest signal.
+                        if prefer_code and found.method != "code":
+                            best_link = best_link or found  # keep polling for a code
+                            continue
                         return found
                     # Unrelated sender (e.g. a brand/ESP domain): trust it only
                     # if it arrived after we started waiting. Keep the newest.
@@ -403,9 +419,11 @@ def find_verification(
                             internal.replace(tzinfo=timezone.utc) >= fallback_floor):
                         fallback = found
             if fallback is not None:
-                return fallback
+                if not (prefer_code and fallback.method != "code"):
+                    return fallback
+                best_link = best_link or fallback
             time.sleep(poll_interval)
-        return None
+        return best_link  # prefer_code: the link fallback if no code ever arrived
     finally:
         try:
             client.logout()
