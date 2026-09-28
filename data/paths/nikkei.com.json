@@ -1,0 +1,181 @@
+{
+  "rp_id": "nikkei.com",
+  "login_url": "https://nikkei.com",
+  "success_url": "https://id.nikkei.com/login/error",
+  "steps": [
+    {
+      "kind": "navigate",
+      "url": "https://www.nikkei.com/"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Log in\"",
+      "frame_url": "https://www.nikkei.com/",
+      "text": "Log in"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/login/?auth=eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJjQVBaWV9ESF9YazFVVFB5QmxPLTdzSlRRV2hzYmw4RGVuX1ZzUGd6IiwiaXNzIjoiSUFNIiwiYXVkIjpbIk1XRUIiXSwiZXhwIjoxNzkwMjUyODczLCJpYXQiOjE3OTAyNTEwNzMsInN0YXRlIjoibG9naW5faWRfcmVxdWlyZWQiLCJvcHQiOiJsb2dpbiIsInNjb3BlcyI6WyJwcm9maWxlX25pZG1heCIsIm5rZGsucmVmLmF1dGh6LkRTIiwibmtkay5yZWYuYXV0aHouRFNCMkIiLCJua2RrLnJlZi5hdXRoei5EU1NIQVJFRCIsIm5rZGsucmVmLmF1dGh6LkpXIiwibmtkay5yZWYuYXV0aHouSldCMkIiLCJua2RrLnJlZi5hdXRoei5QSyIsIm5rZGsucmVmLmF1dGh6Lk1KViIsIm5rZGsucmVmLmF1dGh6Lk1KVkIyQiIsIm5rZGsucmVmLmF1dGh6LkxNQjJCIiwibmtkay5yZWYuYXV0aHouTkYiLCJua2RrLnJlZi5hdXRoei5ORkIyQiIsIm5rZGsucmVmLmF1dGh6LlBSTUIiLCJua2RrLnJlZi5hdXRoei5QUk1CQjJCIiwibmtkay5yZWYuYXV0aHouUFJHWCIsIm5rZGsucmVmLmF1dGh6LlBSR1hCMkIiLCJua2RrLnJlZi5hdXRoei5QUlRGIiwibmtkay5yZWYuYXV0aHouUFJURkIyQiIsIm5rZGsucmVmLmF1dGh6LlBSRlQiLCJua2RrLnJlZi5hdXRoei5QUkZUQjJCIiwibmtkay5yZWYuYXV0aHouUFJNTiIsIm5rZGsucmVmLmF1dGh6LlBSTU5CMkIiLCJua2RrLnJlZi5hdXRoei5QUkRHIiwibmtkay5yZWYuYXV0aHouUFJER0IyQiIsIm5rZGsucmVmLmF1dGh6LlBSVlMiLCJua2RrLnJlZi5hdXRoei5QUlZTQjJCIl0sImNsaWVudF9pZCI6IlJOSUtLRUkiLCJwcml2YWN5X3BvbGljeSI6eyJ1cmwiOiJodHRwczovL3d3dy5uaWtrZWkuY29tL2xvdW5nZS9wcml2YWN5L3ByaXZhY3ktdmVyMS5odG1sIiwidmVyc2lvbiI6MSwidHlwZSI6Ik5JS0tFSV9QUklWQUNZX1BPTElDWSJ9LCJ0ZXJtc19vZl9zZXJ2aWNlIjp7InVybCI6Imh0dHBzOi8vd3d3Lm5pa2tlaS5jb20vbG91bmdlL2hlbHAvdG9zLXZlcjEuaHRtbCIsInZlcnNpb24iOjEsInR5cGUiOiJOSUtLRUlfSURfVEVSTVNfT0ZfU0VSVklDRSJ9LCJjbGllbnRfbmFtZSI6IuaXpeacrOe1jOa4iOaWsOiBniDpm7vlrZDniYgifQ.aUFk4gLmUUZYrhc0G3FzK5rVfKuVl3tTD5714LP_QgYakz9R2CorPo4xpzqXiXQJSFDaeQeRVKuA5syBNUUcFA"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/login/id"
+    },
+    {
+      "kind": "fill",
+      "selector": "[data-testid=\"email\"]",
+      "frame_url": "https://id.nikkei.com/login/id",
+      "field": "email"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"submit\"]",
+      "frame_url": "https://id.nikkei.com/login/id",
+      "text": "Next"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/login/password"
+    },
+    {
+      "kind": "fill",
+      "selector": "[data-testid=\"password\"]",
+      "frame_url": "https://id.nikkei.com/login/password",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"submit\"]",
+      "frame_url": "https://id.nikkei.com/login/password",
+      "text": "Next"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.nikkei.com/"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Unregistered\"",
+      "frame_url": "https://www.nikkei.com/",
+      "text": "Unregistered"
+    },
+    {
+      "kind": "click",
+      "selector": "input[name=\"\u672a\u767b\u9332\"]",
+      "frame_url": "https://www.nikkei.com/",
+      "text": "on"
+    },
+    {
+      "kind": "fill",
+      "selector": "input[name=\"\u672a\u767b\u9332\"]",
+      "frame_url": "https://www.nikkei.com/",
+      "field": "other",
+      "value": "on"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Nikkei ID Lounge\"",
+      "frame_url": "https://www.nikkei.com/",
+      "text": "Nikkei ID Lounge"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/account"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"sidebar-navigation-security\"]",
+      "frame_url": "https://id.nikkei.com/account",
+      "text": "security\n\nPasswords and two-factor authe"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/login/?auth=eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJjbDV3TmFuRWVJRmdZdjVUc0RpYXNYQlJXc1lXRTUxWmhGbm1rLXN1IiwiaXNzIjoiSUFNIiwiYXVkIjpbIk1XRUIiXSwiZXhwIjoxNzkwMjUyOTEzLCJpYXQiOjE3OTAyNTExMTMsInN0YXRlIjoibG9naW5faWRfcmVxdWlyZWQiLCJvcHQiOiJsb2dpbiIsInNjb3BlcyI6WyJvcGVuaWQiXSwiY2xpZW50X2lkIjoiTklEIiwibG9naW5faGludCI6ImVmaS5hdWRpdC5ycHNAZ21haWwuY29tIiwibG9naW5faGludF9maXgiOnRydWUsInByaXZhY3lfcG9saWN5Ijp7InVybCI6Imh0dHBzOi8vd3d3Lm5pa2tlaS5jb20vbG91bmdlL3ByaXZhY3kvcHJpdmFjeS12ZXIxLmh0bWwiLCJ2ZXJzaW9uIjoxLCJ0eXBlIjoiTklLS0VJX1BSSVZBQ1lfUE9MSUNZIn0sInRlcm1zX29mX3NlcnZpY2UiOnsidXJsIjoiaHR0cHM6Ly93d3cubmlra2VpLmNvbS9sb3VuZ2UvaGVscC90b3MtdmVyMS5odG1sIiwidmVyc2lvbiI6MSwidHlwZSI6Ik5JS0tFSV9JRF9URVJNU19PRl9TRVJWSUNFIn0sImNsaWVudF9uYW1lIjoiTUVMSVNTQSBBY2NvdW50IFBhZ2UifQ.Lsp27mleErhNQ6zBi7W_CJDYckLupLT2OL531wW3vCOacBu6XJnGO_NQ-vtqvaY3kM6Qmcl3Q_WLA2g0KPXKNA"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/login/id"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"submit\"]",
+      "frame_url": "https://id.nikkei.com/login/id",
+      "text": "Next"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/login/password"
+    },
+    {
+      "kind": "fill",
+      "selector": "[data-testid=\"password\"]",
+      "frame_url": "https://id.nikkei.com/login/password",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"submit\"]",
+      "frame_url": "https://id.nikkei.com/login/password",
+      "text": "Next"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/login/challenge"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/account/security"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Set passkey\"",
+      "frame_url": "https://id.nikkei.com/account/security",
+      "text": "Set passkey"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/account/security/passkeys"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"submit\"]",
+      "frame_url": "https://id.nikkei.com/account/security/passkeys",
+      "text": "Create passkey"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/account/security/passkeys/created"
+    },
+    {
+      "kind": "click",
+      "selector": "span[aria-label=\"Open\\ the\\ account\\ menu\"]",
+      "frame_url": "https://id.nikkei.com/account/security/passkeys/created",
+      "text": ""
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Log out\"",
+      "frame_url": "https://id.nikkei.com/account/security/passkeys/created",
+      "text": "Log out"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/account"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"button-login\"]",
+      "frame_url": "https://id.nikkei.com/account",
+      "text": "Log in"
+    },
+ 
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/login/id"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://id.nikkei.com/login/error"
+    }
+  ]
+}

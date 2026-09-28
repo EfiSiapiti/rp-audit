@@ -1,0 +1,195 @@
+{
+  "rp_id": "microsoft.com",
+  "login_url": "https://microsoft.com",
+  "success_url": "https://www.microsoft.com/en-cy",
+  "steps": [
+    {
+      "kind": "navigate",
+      "url": "https://www.microsoft.com/en-cy"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"ME\"",
+      "frame_url": "https://www.microsoft.com/en-cy",
+      "text": "ME"
+    },
+    
+    {
+      "kind": "click",
+      "selector": "#middle",
+      "text": "Sign in\nUse your Microsoft account.\nEmai"
+    },
+    {
+      "kind": "fill",
+      "selector": "#usernameEntry",
+      "field": "email"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"primaryButton\"]",
+      "text": "Next"
+    },
+    
+
+    {
+      "kind": "click",
+      "selector": "text=\"Use your password\"",
+      "frame_url": "https://login.live.com/ppsecure/post.srf?client_id=10fa57ef-4895-4ab2-872c-8c3613d4f7fb&contextid=AA9941F1920BF624&opid=6413713219432F60&bk=1790248095&uaid=c825ad1e5f1a4952aeaf988f595fffe7&pid=15216",
+      "text": "Use your password"
+    },
+   
+    {
+      "kind": "click",
+      "selector": "#middle",
+      "frame_url": "https://login.live.com/ppsecure/post.srf?client_id=10fa57ef-4895-4ab2-872c-8c3613d4f7fb&contextid=AA9941F1920BF624&opid=6413713219432F60&bk=1790248095&uaid=c825ad1e5f1a4952aeaf988f595fffe7&pid=15216",
+      "text": "efi.audit.rps@gmail.com\nEnter your passw"
+    },
+    {
+      "kind": "fill",
+      "selector": "#passwordEntry",
+      "frame_url": "https://login.live.com/ppsecure/post.srf?client_id=10fa57ef-4895-4ab2-872c-8c3613d4f7fb&contextid=AA9941F1920BF624&opid=6413713219432F60&bk=1790248095&uaid=c825ad1e5f1a4952aeaf988f595fffe7&pid=15216",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"primaryButton\"]",
+      "frame_url": "https://login.live.com/ppsecure/post.srf?client_id=10fa57ef-4895-4ab2-872c-8c3613d4f7fb&contextid=AA9941F1920BF624&opid=6413713219432F60&bk=1790248095&uaid=c825ad1e5f1a4952aeaf988f595fffe7&pid=15216",
+      "text": "Next"
+    },
+
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"primaryButton\"]",
+      "frame_url": "https://login.live.com/ppsecure/post.srf?client_id=10fa57ef-4895-4ab2-872c-8c3613d4f7fb&contextid=AA9941F1920BF624&opid=6413713219432F60&bk=1790248096&uaid=c825ad1e5f1a4952aeaf988f595fffe7&pid=15216",
+      "text": "Yes"
+    },
+
+
+    {
+      "kind": "navigate",
+      "url": "https://account.microsoft.com/security?fref=home.drawers.security.security-dashboard&refd=account.microsoft.com"
+    },
+ 
+
+
+    {
+      "kind": "click",
+      "selector": "button[aria-label=\"Manage\\ how\\ I\\ sign\\ in\"]",
+      "frame_url": "https://account.microsoft.com/security?fref=home.drawers.security.security-dashboard&refd=account.microsoft.com",
+      "text": "Manage how I sign in"
+    },
+   
+   
+    {
+      "kind": "click",
+      "selector": "#middle",
+      "frame_url": "https://login.live.com/login.srf?wa=wsignin1.0&rpsnv=205&ct=1790248152&rver=7.5.2211.0&wp=SA_20MIN&wreply=https%3A%2F%2Faccount.live.com%2Fproofs%2Fmanage%2Fadditional%3Fmkt%3Den-US%26refd%3Daccount.microsoft.com%26refp%3Dsecurity%26uaid%3De2e4bbd08cc84a31909d28ba11a5d72d&lc=1033&id=38936&mkt=en-US&uaid=e2e4bbd08cc84a31909d28ba11a5d72d",
+      "text": "\nEnter the code\nW"
+    },
+
+    {
+      "kind": "click",
+      "selector": "#AddProofLink",
+      "frame_url": "https://account.live.com/proofs/manage/additional?mkt=en-US&refd=account.microsoft.com&refp=security&uaid=e2e4bbd08cc84a31909d28ba11a5d72d",
+      "text": "Add another way to sign in to your accou"
+    },
+    {
+      "kind": "click",
+      "selector": "#Add_passKeys",
+      "frame_url": "https://account.live.com/proofs/manage/additional?mkt=en-US&refd=account.microsoft.com&refp=security&uaid=e2e4bbd08cc84a31909d28ba11a5d72d",
+      "text": "Face, fingerprint, PIN, or security key\n"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://login.microsoft.com/consumers/fido/create?mkt=en-US"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://account.live.com/proofs/Manage/additional?uaid=e2e4bbd08cc84a31909d28ba11a5d72d&isPassKeyCreation=true&mkt=en-US"
+    },
+    {
+      "kind": "fill",
+      "selector": "#passkeyName",
+      "frame_url": "https://account.live.com/proofs/Manage/additional?uaid=e2e4bbd08cc84a31909d28ba11a5d72d&isPassKeyCreation=true&mkt=en-US",
+      "field": "other",
+      "value": "pawned_key"
+    },
+    {
+      "kind": "click",
+      "selector": "#iBtn_action",
+      "frame_url": "https://account.live.com/proofs/Manage/additional?uaid=e2e4bbd08cc84a31909d28ba11a5d72d&isPassKeyCreation=true&mkt=en-US",
+      "text": "Next"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://account.live.com/proofs/Manage/additional?uaid=e2e4bbd08cc84a31909d28ba11a5d72d&mkt=en-US"
+    },
+    {
+      "kind": "click",
+      "selector": "#iBtn_action",
+      "frame_url": "https://account.live.com/proofs/Manage/additional?uaid=e2e4bbd08cc84a31909d28ba11a5d72d&mkt=en-US",
+      "text": "OK"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://account.live.com/proofs/Manage/additional?uaid=e2e4bbd08cc84a31909d28ba11a5d72d&mkt=en-US"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://account.live.com/proofs/Manage/additional"
+    },
+    {
+      "kind": "click",
+      "selector": "#O365_MainLink_Me",
+      "frame_url": "https://account.live.com/proofs/Manage/additional",
+      "text": "ES"
+    },
+    {
+      "kind": "click",
+      "selector": "#mectrl_body_signOut",
+      "frame_url": "https://account.live.com/proofs/Manage/additional",
+      "text": "Sign out"
+    },
+
+    {
+      "kind": "click",
+      "selector": "#middle",
+      "frame_url": "https://login.live.com/login.srf?wa=wsignin1.0&rpsnv=205&ct=1790248199&rver=7.5.2211.0&wp=SA_20MIN&wreply=https%3A%2F%2Faccount.live.com%2Fproofs%2FManage%2Fadditional%3Flc%3D1033%26uaid%3D8beb404d4da448ee8ee3ee57ead32dc8&lc=1033&id=38936&mkt=en-US&uaid=8beb404d4da448ee8ee3ee57ead32dc8",
+      "text": "Sign in\nUse your Microsoft account.\nEmai"
+    },
+    {
+      "kind": "fill",
+      "selector": "#usernameEntry",
+      "frame_url": "https://login.live.com/login.srf?wa=wsignin1.0&rpsnv=205&ct=1790248199&rver=7.5.2211.0&wp=SA_20MIN&wreply=https%3A%2F%2Faccount.live.com%2Fproofs%2FManage%2Fadditional%3Flc%3D1033%26uaid%3D8beb404d4da448ee8ee3ee57ead32dc8&lc=1033&id=38936&mkt=en-US&uaid=8beb404d4da448ee8ee3ee57ead32dc8",
+      "field": "email"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"primaryButton\"]",
+      "frame_url": "https://login.live.com/login.srf?wa=wsignin1.0&rpsnv=205&ct=1790248199&rver=7.5.2211.0&wp=SA_20MIN&wreply=https%3A%2F%2Faccount.live.com%2Fproofs%2FManage%2Fadditional%3Flc%3D1033%26uaid%3D8beb404d4da448ee8ee3ee57ead32dc8&lc=1033&id=38936&mkt=en-US&uaid=8beb404d4da448ee8ee3ee57ead32dc8",
+      "text": "Next"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://login.microsoft.com/9188040d-6c67-4c5b-b112-36a304b66dad/bridge/fido?fluent=2&cancelUrl=https://login.live.com/login.srf%3flc%3d1033%26mkt%3den-US%26id%3d38936%26uaid%3d8beb404d4da448ee8ee3ee57ead32dc8%26upredirected%3d1%26opid%3dA69BDABE7BF18178"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://login.live.com/authfinish.srf?route=C503_BAY"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"secondaryButton\"]",
+      "frame_url": "https://login.live.com/authfinish.srf?route=C503_BAY",
+      "text": "No"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://login.live.com/ppsecure/post.srf?uaid=8beb404d4da448ee8ee3ee57ead32dc8&pid=0&opid=A69BDABE7BF18178&route=C503_BAY"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://account.live.com/proofs/Manage/additional?lc=1033&uaid=8beb404d4da448ee8ee3ee57ead32dc8"
+    }
+  ]
+}

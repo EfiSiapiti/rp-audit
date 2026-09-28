@@ -1,0 +1,143 @@
+{
+  "rp_id": "discord.com",
+  "login_url": "https://discord.com",
+  "success_url": "https://discord.com/channels/@me",
+  "steps": [
+    {
+      "kind": "navigate",
+      "url": "https://discord.com/"
+    },
+    {
+      "kind": "click",
+      "selector": "#main > div:nth-of-type(1)",
+      "frame_url": "https://discord.com/",
+      "text": "GROUP CHAT THAT\u2019S ALL FUN\u00a0& GAMES\n\nDisco"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Log In\"",
+      "frame_url": "https://discord.com/",
+      "text": "Log In"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://discord.com/login"
+    },
+    {
+      "kind": "fill",
+      "selector": "#uid_10",
+      "frame_url": "https://discord.com/login",
+      "field": "email"
+    },
+    {
+      "kind": "fill",
+      "selector": "#uid_12",
+      "frame_url": "https://discord.com/login",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Log In\"",
+      "frame_url": "https://discord.com/login",
+      "text": "Log In"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://discord.com/app"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://discord.com/channels/@me"
+    },
+    {
+      "kind": "click",
+      "selector": "button[aria-label=\"User\\ Settings\"]",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": ""
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Password & Security\"",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "Password & Security"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Multi-Factor Authentication Set up\"",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "Multi-Factor Authentication\nSet up"
+    },
+    {
+      "kind": "click",
+      "selector": "div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div > div:nth-of-type(1)",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "Security Keys\nUse your fingerprint, face"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Add Security Key\"",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "Add Security Key"
+    },
+    {
+      "kind": "fill",
+      "selector": "input[autocomplete=\"password\"]",
+      "frame_url": "https://discord.com/channels/@me",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Confirm\"",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "Confirm"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Let's go\"",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "Let's go"
+    },
+    {
+      "kind": "click",
+      "selector": "div[aria-label=\"Name\\ your\\ security\\ key\"]",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "Loading\nLoading finished\nLoading\nName yo"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Finish\"",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "Finish"
+    },
+    {
+      "kind": "click",
+      "selector": "button[aria-label=\"Close\"]",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": ""
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"I'm sure\"",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "I'm sure"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Log Out\"",
+      "frame_url": "https://discord.com/channels/@me",
+      "text": "Log Out"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://discord.com/login"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://discord.com/app"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://discord.com/channels/@me"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "rp_id": "canva.com",
+  "login_url": "https://canva.com",
+  "success_url": "https://www.canva.com/login/",
+  "steps": [
+    {
+      "kind": "navigate",
+      "url": "https://www.canva.com/"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.canva.com/settings/account"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.canva.com/settings/your-account"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.canva.com/settings/login-and-security"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.canva.com/login/?shouldClearGotAutoSelect"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://www.canva.com/login/"
+    }
+  ]
+}

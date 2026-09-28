@@ -5,33 +5,57 @@ snapshot again. Each one needs the same page/context, so we keep a
 module-level singleton.
 
 Design:
-- Headed Chromium / Chrome (visible). User watches and solves CAPTCHAs.
+- Headed real Chrome (visible). User watches and solves CAPTCHAs.
+- We do NOT let Playwright *launch* the browser. Playwright's
+  launch_persistent_context injects ~40 default command-line switches and
+  keeps an active CDP instrumentation session running; that combination is
+  fingerprinted by Cloudflare-class bot detection (e.g. Canva 403s) even with
+  navigator.webdriver forced false. Instead we spawn a plain real Chrome as
+  its own subprocess with a minimal, benign flag set (exactly the manual_launch.py
+  recipe that is verified to get past Canva) and then *attach* to it over CDP
+  via connect_over_cdp. The running browser process is then indistinguishable
+  from a hand-started Chrome — webdriver is never set at all — while Playwright
+  still fully drives it for record/replay.
 - Each launch gets a throwaway temp profile — we never create or reuse a
   persistent per-RP profile, so every run starts as a first-time visitor
   with an empty cookie jar. The temp dir is removed on shutdown.
-- playwright-stealth patches injected on every page to hide the most
-  obvious automation tells (navigator.webdriver, plugin arrays, etc).
 
-Stealth notes:
-- After busting my patience, the automation passes the browser attached 
-to playwright test though the flag --disable-blink-features=AutomationController.
+History: commit bb6b309 ("first test passed: playwright attached and not
+detected as a bot") used this attach-over-CDP approach; a later switch to
+launch_persistent_context regressed it. This restores the attach model.
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
+import os
 import shutil
+import socket
+import subprocess
 import tempfile
+import time
+import urllib.request
 from pathlib import Path
 
-from playwright.async_api import async_playwright, BrowserContext, Page, Playwright
-
+# Driver: prefer patchright — a drop-in patched Playwright that removes the
+# CDP-attach tells Cloudflare-class bot management fingerprints (it avoids the
+# main-world `Runtime.enable` leak, acquires execution contexts via isolated
+# worlds, and hides Playwright's injected bindings). The residual signal that
+# challenged Canva's authnflow POST was this instrumentation, NOT behaviour:
+# during record the human physically drives the real Chrome, so input events
+# are genuine/trusted. Falls back to stock Playwright if patchright isn't
+# installed (`pip install patchright`; no browser download needed since we
+# attach to our own real Chrome over CDP).
 try:
-    from playwright_stealth import Stealth
-    _STEALTH_AVAILABLE = True
+    from patchright.async_api import async_playwright  # type: ignore
+    _DRIVER = "patchright"
 except ImportError:
-    _STEALTH_AVAILABLE = False
+    from playwright.async_api import async_playwright
+    _DRIVER = "playwright"
+
+# Type-only imports (structurally compatible with patchright's objects).
+from playwright.async_api import Browser, BrowserContext, Page, Playwright
 
 
 def _ephemeral_profile_dir(rp_id: str) -> Path:
@@ -76,6 +100,8 @@ def _merge_chrome_prefs(prefs_path: Path) -> None:
     profile["password_manager_leak_detection"] = False
     # Auto-deny permission prompts (2 = block) so "Show notifications?" /
     # location bubbles never cover the page or intercept a replay click.
+    # (Ruled out as the Canva 403 cause on 2026-09-24 — block still 403s with
+    # this disabled.)
     csv = profile.get("default_content_setting_values")
     if not isinstance(csv, dict):
         csv = {}
@@ -114,24 +140,74 @@ async def _page_healthy(page: Page | None) -> bool:
         return False
 
 
+def _find_chrome() -> str:
+    """Locate a real Chrome executable, or raise with guidance.
+
+    We deliberately want *real* Chrome (channel), not Playwright's bundled
+    Chromium — the fingerprint of a stock Chrome install is what passes.
+    """
+    candidates: list[Path] = []
+    for env in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"):
+        base = os.environ.get(env)
+        if base:
+            candidates.append(Path(base) / "Google" / "Chrome" / "Application" / "chrome.exe")
+    candidates.append(Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"))
+    for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome"):
+        found = shutil.which(name)
+        if found:
+            candidates.append(Path(found))
+    for c in candidates:
+        if c and c.exists():
+            return str(c)
+    raise RuntimeError(
+        "could not find a real Chrome executable — install Chrome or set one on PATH"
+    )
+
+
+def _free_port(preferred: int = 9222) -> int:
+    """Return `preferred` if free, else the next free port in a small range."""
+    for port in [preferred, *range(preferred + 1, preferred + 40)]:
+        with socket.socket() as s:
+            try:
+                s.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    return preferred
+
+
+def _wait_for_cdp(port: int, timeout: float = 30.0) -> str:
+    """Block until Chrome's DevTools endpoint answers, then return its base URL.
+
+    Blocking (urllib + sleep) — call via asyncio.to_thread from async code.
+    """
+    probe = f"http://127.0.0.1:{port}/json/version"
+    deadline = time.time() + timeout
+    last = "no response"
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(probe, timeout=2) as r:
+                json.loads(r.read())  # ensure it's really up
+                return f"http://127.0.0.1:{port}"
+        except Exception as e:
+            last = str(e)
+            time.sleep(0.5)
+    raise RuntimeError(f"Chrome DevTools endpoint on port {port} did not come up in {timeout:.0f}s ({last})")
+
+
 class BrowserSession:
     def __init__(self) -> None:
         self.pw: Playwright | None = None
+        self.browser: Browser | None = None
         self.ctx: BrowserContext | None = None
         self.page: Page | None = None
         self.rp_id: str | None = None
         self._profile_dir: Path | None = None
-
-    async def _apply_stealth(self, page: Page) -> None:
-        if not _STEALTH_AVAILABLE:
-            return
-        try:
-            await Stealth().apply_stealth_async(page)
-        except Exception as e:
-            print(f"  (stealth patches failed: {e})")
+        self._proc: subprocess.Popen | None = None
 
     async def _launch_for_rp(self, rp_id: str) -> Page:
 
+        chrome = _find_chrome()  # fail fast & clearly if Chrome is missing
         last_problem = "unknown"
         for attempt in range(1, 4):
             profile_dir = _ephemeral_profile_dir(rp_id)
@@ -140,42 +216,37 @@ class BrowserSession:
             default_dir.mkdir(parents=True, exist_ok=True)
             _merge_chrome_prefs(default_dir / "Preferences")
 
-            args = [
-                "--disable-features=IsolateOrigins,site-per-process,"
-                "AutofillServerCommunication,AutofillEnableAccountWalletStorage",
-                "--disable-autofill-keyboard-accessory-view",
-                "--disable-blink-features=AutomationControlled",
+            port = _free_port(9222)
+            # Minimal, benign flag set — the exact manual_launch.py recipe.
+            # No automation switches, no --disable-blink-features, no big
+            # --disable-features list: a subprocess Chrome never sets
+            # navigator.webdriver, so there is nothing to suppress, and every
+            # extra flag is just another thing that differs from a stock
+            # Chrome. Playwright attaches afterwards over CDP and drives it.
+            chrome_args = [
+                chrome,
+                f"--remote-debugging-port={port}",
+                f"--user-data-dir={profile_dir.absolute()}",
+                "--no-first-run",
+                "--no-default-browser-check",
+                "--new-window",
+                "about:blank",
             ]
 
-            launch_kwargs = dict(
-                user_data_dir=str(profile_dir.absolute()),
-                headless=False,
-                no_viewport=True,
-                args=args,
-                ignore_default_args=["--enable-automation"],
-            )
-
-            self.pw = await async_playwright().start()
             try:
-                try:
-                    self.ctx = await self.pw.chromium.launch_persistent_context(channel="chrome", **launch_kwargs)
-                    channel = "real Chrome"
-                except Exception:
-                    self.ctx = await self.pw.chromium.launch_persistent_context(**launch_kwargs)
-                    channel = "Chromium fallback"
+                self._proc = subprocess.Popen(chrome_args)
+                cdp_url = await asyncio.to_thread(_wait_for_cdp, port)
+                self.pw = await async_playwright().start()
+                self.browser = await self.pw.chromium.connect_over_cdp(cdp_url)
+                self.ctx = (self.browser.contexts[0] if self.browser.contexts
+                            else await self.browser.new_context())
                 self.page = self.ctx.pages[0] if self.ctx.pages else await self.ctx.new_page()
-                await self._apply_stealth(self.page)
-                # No UA / Client-Hints override: native Chrome already emits a
-                # correct, machine-accurate and self-consistent UA + Sec-CH-UA-*
-                # set (verified: platform-version, arch, bitness, full-version
-                # all match a normally-launched Chrome). A CDP override could
-                # only introduce a mismatch — e.g. a hardcoded platformVersion
-                # that Cloudflare's critical-CH retry would catch.
                 self.rp_id = rp_id
                 if await _page_healthy(self.page):
-                    print(f"  (browser: {channel}, profile={profile_dir})")
+                    print(f"  (browser: real Chrome over CDP :{port} via {_DRIVER}, "
+                          f"profile={profile_dir})")
                     return self.page
-                last_problem = "launched browser was unresponsive"
+                last_problem = "attached browser was unresponsive"
             except Exception as e:
                 last_problem = str(e)
             await self.shutdown()
@@ -209,12 +280,29 @@ class BrowserSession:
 
     async def shutdown(self) -> None:
         try:
-            if self.ctx:
-                await self.ctx.close()
+            # connect_over_cdp: browser.close() only disconnects Playwright; it
+            # does NOT kill the Chrome we spawned. Do the disconnect first, then
+            # terminate the subprocess ourselves.
+            if self.browser:
+                try:
+                    await self.browser.close()
+                except Exception:
+                    pass
             if self.pw:
                 await self.pw.stop()
         finally:
+            if self._proc is not None:
+                try:
+                    self._proc.terminate()
+                    try:
+                        self._proc.wait(timeout=5)
+                    except Exception:
+                        self._proc.kill()
+                except Exception:
+                    pass
+                self._proc = None
             self.pw = None
+            self.browser = None
             self.ctx = None
             self.page = None
             self.rp_id = None

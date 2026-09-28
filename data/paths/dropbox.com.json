@@ -1,7 +1,10 @@
 {
   "rp_id": "dropbox.com",
-  "login_url": "https://www.dropbox.com/login",
+  "login_url": "https://dropbox.com",
+  "success_url": "https://www.dropbox.com/login?src=logout",
+  "register_url": "https://www.dropbox.com/account/security",
   "steps": [
+
     {
       "kind": "navigate",
       "url": "https://www.dropbox.com/login"
@@ -10,7 +13,8 @@
       "kind": "fill",
       "selector": "[data-testid=\"susi-email-input\"]",
       "frame_url": "https://www.dropbox.com/login",
-      "field": "email"
+      "field": "email",
+      "value": "email"
     },
     {
       "kind": "click",
@@ -18,7 +22,7 @@
       "frame_url": "https://www.dropbox.com/login",
       "text": "Continue"
     },
-   
+    
     {
       "kind": "fill",
       "selector": "[data-testid=\"susi-password-input\"]",
@@ -31,9 +35,52 @@
       "frame_url": "https://www.dropbox.com/login",
       "text": "Log in"
     },
+ 
     {
       "kind": "navigate",
-      "url": "https://www.dropbox.com/"
+      "url": "https://www.dropbox.com/account/security"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"security-passkeys-button\"]",
+      "frame_url": "https://www.dropbox.com/account/security",
+      "text": "Manage passkeys"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Add new passkey\"",
+      "frame_url": "https://www.dropbox.com/account/security",
+      "text": "Add passkey"
+    },
+    
+    {
+      "kind": "fill",
+      "selector": "[data-testid=\"mfa-password-input\"]",
+      "frame_url": "https://www.dropbox.com/account/security",
+      "field": "password"
+    },
+    {
+      "kind": "click",
+      "selector": "[data-testid=\"mfa-challenge-submit-button\"]",
+      "frame_url": "https://www.dropbox.com/account/security",
+      "text": "Submit"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Save\"",
+      "frame_url": "https://www.dropbox.com/account/security",
+      "text": "Save"
+    },
+    {
+      "kind": "click",
+      "selector": "button[aria-label=\"Account\\ menu\"]",
+      "frame_url": "https://www.dropbox.com/account/security"
+    },
+    
+    {
+      "kind": "navigate",
+      "url": "https://www.dropbox.com/logout"
     }
+    
   ]
 }
