@@ -1,0 +1,110 @@
+{
+  "rp_id": "dropbox.com",
+  "captured_requests": 444,
+  "flow": [
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://www.dropbox.com/ajax_login",
+      "status": 200,
+      "request_content_type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "login_fields": {
+        "login_email": "{{email}}",
+        "encrypted_password": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://www.dropbox.com/ajax_login",
+      "status": 200,
+      "request_content_type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "login_fields": {
+        "login_email": "{{email}}",
+        "encrypted_password": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://www.dropbox.com/account/twofactor/edit_confirm_password",
+      "status": 200,
+      "request_content_type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "login_fields": {
+        "password": "{{password}}"
+      },
+      "sets_session_cookie": true
+    },
+    {
+      "tag": "webauthn_register_begin",
+      "method": "POST",
+      "url": "https://www.dropbox.com/2/catapult/passkeys/start_registration",
+      "status": 200,
+      "request_content_type": "application/json",
+      "csrf": {
+        "location": "header",
+        "name": "x-csrf-token",
+        "source": "unknown"
+      }
+    },
+    {
+      "tag": "webauthn_register_finish",
+      "method": "POST",
+      "url": "https://www.dropbox.com/2/catapult/passkeys/finish_registration",
+      "status": 200,
+      "request_content_type": "application/json",
+      "csrf": {
+        "location": "header",
+        "name": "x-csrf-token",
+        "source": "unknown"
+      }
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://www.dropbox.com/2/password_confirmation/confirm_password",
+      "status": 200,
+      "request_content_type": "application/json",
+      "csrf": {
+        "location": "header",
+        "name": "x-csrf-token",
+        "source": "unknown"
+      },
+      "login_fields": {
+        "encrypted_password": "{{password}}"
+      },
+      "sets_session_cookie": true
+    },
+    {
+      "tag": "webauthn_register_begin",
+      "method": "POST",
+      "url": "https://www.dropbox.com/2/catapult/passkeys/start_registration",
+      "status": 200,
+      "request_content_type": "application/json",
+      "csrf": {
+        "location": "header",
+        "name": "x-csrf-token",
+        "source": "unknown"
+      }
+    },
+    {
+      "tag": "webauthn_register_finish",
+      "method": "POST",
+      "url": "https://www.dropbox.com/2/catapult/passkeys/finish_registration",
+      "status": 200,
+      "request_content_type": "application/json",
+      "csrf": {
+        "location": "header",
+        "name": "x-csrf-token",
+        "source": "unknown"
+      }
+    }
+  ],
+  "summary": {
+    "login": 4,
+    "webauthn_register_begin": 2,
+    "webauthn_register_finish": 2
+  }
+}

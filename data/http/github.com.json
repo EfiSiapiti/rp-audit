@@ -1,0 +1,57 @@
+{
+  "rp_id": "github.com",
+  "captured_requests": 56,
+  "flow": [
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "GET",
+      "url": "https://github.com/u2f/login_fragment?disable_signup=false&is_emu_login=false&mobile_ios=false",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://github.com/session",
+      "status": 302,
+      "request_content_type": "application/x-www-form-urlencoded",
+      "csrf": {
+        "location": "body",
+        "name": "authenticity_token",
+        "source": "unknown"
+      },
+      "login_fields": {
+        "login": "{{email}}",
+        "password": "{{password}}"
+      },
+      "sets_session_cookie": true
+    },
+    {
+      "tag": "webauthn_register_begin",
+      "method": "GET",
+      "url": "https://github.com/sessions/trusted-device?return_to=%2Fsettings%2Fsecurity",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "webauthn_register_begin",
+      "method": "GET",
+      "url": "https://github.com/sessions/trusted-device?return_to=%2Fsettings%2Fsecurity",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "webauthn_register_finish",
+      "method": "POST",
+      "url": "https://github.com/u2f/trusted_devices",
+      "status": 201,
+      "request_content_type": "multipart/form-data; boundary=----WebKitFormBoundaryyhkGB8iSvQYjCMZY"
+    }
+  ],
+  "summary": {
+    "webauthn_auth_begin": 1,
+    "login": 1,
+    "webauthn_register_begin": 2,
+    "webauthn_register_finish": 1
+  }
+}

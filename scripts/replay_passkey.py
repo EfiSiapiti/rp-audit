@@ -307,6 +307,12 @@ async def main() -> None:
                     help="inject pwned-xploit hook.js to fabricate create() on the recorded "
                          f"Add-passkey step and record the result; bare --hook uses {DEFAULT_HOOK}")
     ap.add_argument("--label", default=None, help="experiment label for data/experiments.csv")
+    ap.add_argument("--persist", action="store_true",
+                    help="reuse the prepared per-RP profile under browser-profiles-manual/<rp> "
+                         "(set up once by hand: log in, and install the extension via "
+                         "chrome://extensions -> Developer mode -> Load unpacked) instead of a "
+                         "fresh throwaway profile — the extension then runs its hook in the page "
+                         "main world natively, no injection needed.")
     args = ap.parse_args()
 
     if args.hook and not Path(args.hook).is_file():
@@ -319,7 +325,7 @@ async def main() -> None:
 
     mode = "passkey" if args.hook else "login"
     print(f"\n→ replay {mode} for {args.rp} ({len(steps)} steps, real Chrome)")
-    page = await browser.ensure_browser_for(args.rp)  # real Chrome, no extension
+    page = await browser.ensure_browser_for(args.rp, persist=args.persist)  # real Chrome
     ctx = await browser.get_context()
 
     captured = None

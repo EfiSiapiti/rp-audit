@@ -23,7 +23,7 @@ from src.lib import browser, ledger
 from scripts import hook_bridge
 
 PATHS_DIR = Path("data/paths")
-DEFAULT_HOOK = "../pwned-xploit/pwned-xploit/hook.js"
+EXTENSION_DIR = "../pwned-xploit/pwned-xploit/manifest.json" 
 
 # Install-and-drain, evaluated into every frame on a Python-side poll timer.
 #
@@ -189,24 +189,31 @@ async def main() -> None:
                     help="where to start; defaults to the RP's canonical origin "
                          "(ledger.origin_for) so you can just drive to the login form yourself")
     ap.add_argument("--out", default=None)
-    ap.add_argument("--hook", nargs="?", const=DEFAULT_HOOK, default=None,
-                    help="inject pwned-xploit hook.js so the Add-passkey ceremony fabricates "
-                         "create() in-page (no OS dialog), letting you record the full flow; "
-                         f"bare --hook uses {DEFAULT_HOOK}. Omit for login-only.")
+    ap.add_argument("--hook", nargs="?", const=EXTENSION_DIR, default=None,
+                    help="load the pwned-xploit hook.js to fabricate a passkey on Add Passkey; "
+                         f"bare --hook uses {EXTENSION_DIR}. Omit for login-only.")
+    ap.add_argument("--persist", action="store_true",
+                    help="reuse the prepared per-RP profile under browser-profiles-manual/<rp> "
+                         "(you set it up once by hand: log in, and install the extension via "
+                         "chrome://extensions -> Developer mode -> Load unpacked) instead of a "
+                         "fresh throwaway profile. The extension is then already in the profile, "
+                         "so --hook is not needed with --persist.")
     args = ap.parse_args()
+    
 
     if args.hook and not Path(args.hook).is_file():
-        raise SystemExit(f"hook.js not found: {args.hook}")
+        raise SystemExit(f"extension not found: {args.hook}")
     out_path = Path(args.out) if args.out else PATHS_DIR / f"{args.rp}.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     steps: list[dict] = []
-    page = await browser.ensure_browser_for(args.rp)  # real Chrome
+    # With --persist the extension is already installed in the prepared profile,
+    # so don't also try to load it via the (branded-Chrome-blocked) flag.
+    extension_dir = None if args.persist else args.hook
+    page = await browser.ensure_browser_for(
+        args.rp, extension_dir=extension_dir, persist=args.persist)  # real Chrome
     ctx = await browser.get_context()
-    if args.hook:
-        await hook_bridge.inject_hook(ctx, args.hook)  # hook + persistence bridge
-        print(f"  injected fabrication hook + persistence bridge: {args.hook}")
-
+   
     def _attach_nav(p):
         p.on("framenavigated",
              lambda fr: fr == p.main_frame and steps.append({"kind": "navigate", "url": fr.url}))

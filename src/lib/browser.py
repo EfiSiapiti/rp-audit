@@ -70,6 +70,23 @@ def _ephemeral_profile_dir(rp_id: str) -> Path:
     return Path(tempfile.mkdtemp(prefix=f"rp-audit-{safe}-"))
 
 
+def _persistent_profile_dir(rp_id: str) -> Path:
+    """A kept per-RP profile directory the USER prepares once by hand.
+
+    Unlike the ephemeral dir, this is reused across runs and never deleted on
+    shutdown, so a browser set up manually — logged in, and with the unpacked
+    extension installed via Developer Mode → Load unpacked — stays that way for
+    later automated runs. The extension "installs" into this profile, so no
+    --load-extension flag is needed on relaunch; patchright just attaches over
+    CDP and drives it. Only one Chrome may use a given profile dir at a time,
+    so keep this separate from your daily Chrome profile.
+    """
+    safe = rp_id.replace("/", "_").replace("\\", "_")
+    d = Path("browser-profiles-manual") / safe
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def _merge_chrome_prefs(prefs_path: Path) -> None:
     """Re-assert the password-manager / autofill / permission-prompt suppression
     keys every launch.
@@ -204,17 +221,26 @@ class BrowserSession:
         self.rp_id: str | None = None
         self._profile_dir: Path | None = None
         self._proc: subprocess.Popen | None = None
+        self._extension_dir: str | None = None
+        self._persist: bool = False
 
-    async def _launch_for_rp(self, rp_id: str) -> Page:
+
+    async def _launch_for_rp(self, rp_id: str, extension_dir: str | None = None,
+                             persist: bool = False) -> Page:
 
         chrome = _find_chrome()  # fail fast & clearly if Chrome is missing
+        self._persist = persist
         last_problem = "unknown"
         for attempt in range(1, 4):
-            profile_dir = _ephemeral_profile_dir(rp_id)
+            profile_dir = (_persistent_profile_dir(rp_id) if persist
+                           else _ephemeral_profile_dir(rp_id))
             self._profile_dir = profile_dir
+            self._extension_dir = extension_dir
             default_dir = profile_dir / "Default"
             default_dir.mkdir(parents=True, exist_ok=True)
             _merge_chrome_prefs(default_dir / "Preferences")
+
+        
 
             port = _free_port(9222)
             # Minimal, benign flag set — the exact manual_launch.py recipe.
@@ -223,17 +249,20 @@ class BrowserSession:
             # navigator.webdriver, so there is nothing to suppress, and every
             # extra flag is just another thing that differs from a stock
             # Chrome. Playwright attaches afterwards over CDP and drives it.
-            chrome_args = [
+            chrome_args = [arg for arg in [
                 chrome,
                 f"--remote-debugging-port={port}",
                 f"--user-data-dir={profile_dir.absolute()}",
                 "--no-first-run",
                 "--no-default-browser-check",
                 "--new-window",
+                f"--disable-features=DisableLoadExtensionCommandLineSwitch" if extension_dir is not None else None,
+                f"--load-extension={Path(extension_dir).absolute()}" if extension_dir is not None else None,
                 "about:blank",
-            ]
+            ] if arg is not None]  # drop any None (e.g. no extension) — Popen needs all str
 
             try:
+
                 self._proc = subprocess.Popen(chrome_args)
                 cdp_url = await asyncio.to_thread(_wait_for_cdp, port)
                 self.pw = await async_playwright().start()
@@ -256,12 +285,14 @@ class BrowserSession:
 
         raise RuntimeError(f"browser launch failed for {rp_id!r} after 3 attempts: {last_problem}")
 
-    async def ensure_browser_for(self, rp_id: str) -> Page:
-        if self.rp_id == rp_id and self.page and not self.page.is_closed():
+    async def ensure_browser_for(self, rp_id: str, extension_dir: str = None,
+                                 persist: bool = False) -> Page:
+        if (self.rp_id == rp_id and self._persist == persist
+                and self.page and not self.page.is_closed()):
             return self.page
         if self.rp_id is not None:
             await self.shutdown()
-        return await self._launch_for_rp(rp_id)
+        return await self._launch_for_rp(rp_id, extension_dir=extension_dir, persist=persist)
 
     async def ensure_browser(self) -> Page:
         if self.page and not self.page.is_closed():
@@ -306,17 +337,22 @@ class BrowserSession:
             self.ctx = None
             self.page = None
             self.rp_id = None
-            # Remove the throwaway profile so nothing persists to be reused.
-            if self._profile_dir is not None:
+            # Remove the throwaway profile so nothing persists to be reused —
+            # but never a persistent profile the user prepared (login + loaded
+            # extension must survive to the next run).
+            if self._profile_dir is not None and not self._persist:
                 shutil.rmtree(self._profile_dir, ignore_errors=True)
-                self._profile_dir = None
+            self._profile_dir = None
+            self._persist = False
 
 
 _session = BrowserSession()
 
 
-async def ensure_browser_for(rp_id: str) -> Page:
-    return await _session.ensure_browser_for(rp_id)
+
+async def ensure_browser_for(rp_id: str, extension_dir: str = None,
+                             persist: bool = False) -> Page:
+    return await _session.ensure_browser_for(rp_id, extension_dir=extension_dir, persist=persist)
 
 
 async def ensure_browser() -> Page:

@@ -1,7 +1,7 @@
 {
   "rp_id": "stripe.com",
   "login_url": "https://stripe.com",
-  "success_url": "https://dashboard.stripe.com/login",
+  "success_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/dashboard",
   "steps": [
     {
       "kind": "navigate",
@@ -46,67 +46,9 @@
       "url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test"
     },
     {
-      "kind": "navigate",
-      "url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/dashboard"
-    },
-    {
-      "kind": "navigate",
-      "url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings/user"
-    },
-    {
       "kind": "click",
-      "selector": "text=\"Add passkey\"",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings/user",
-      "text": "Add passkey"
-    },
-    {
-      "kind": "click",
-      "selector": "[data-testid=\"email-link-send-button\"]",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings/user",
-      "text": "Send verification"
-    },
-    {
-      "kind": "navigate",
-      "url": "https://dashboard.stripe.com/auth_challenge/email_link/fd1oHqnnJf1NB5loEQUnOSn9TMhFKUigwk0OZUA2hZoAc1bY2uUap9C9EVoxnsUt?s=QN4LZoB65lloY6ITSFKyF7nzwKm2OCuJbWCQZg8k81lIeUYhgWWkjNGjK4xcLN1o&p=usr_VLKIaBWx4C2lj7"
-    },
-    {
-      "kind": "click",
-      "selector": "text=\"Continue\"",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings/user",
-      "text": "Continue"
-    },
-    {
-      "kind": "click",
-      "selector": "text=\"Save\"",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings/user",
-      "text": "Save"
-    },
-    {
-      "kind": "click",
-      "selector": "div > div:nth-of-type(2) > div > div > a",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings/user",
-      "text": ""
-    },
-    {
-      "kind": "click",
-      "selector": "text=\"I have saved my backup code\"",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings/user",
-      "text": "I have saved my backup code"
-    },
-    {
-      "kind": "click",
-      "selector": "text=\"Close\"",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings/user",
-      "text": "Close"
-    },
-    {
-      "kind": "navigate",
-      "url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings"
-    },
-    {
-      "kind": "click",
-      "selector": "[data-testid=\"chrome-settings-menu-trigger\"]",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings/user",
+      "selector": "html > body > extensions-manager",
+      "frame_url": "chrome://extensions/",
       "text": ""
     },
     {
@@ -115,63 +57,9 @@
     },
     {
       "kind": "click",
-      "selector": "[data-testid=\"primary-nav-item-link-home\"]",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings",
-      "text": "Home"
-    },
-    {
-      "kind": "click",
-      "selector": "[data-testid=\"toggle-workload-more\"]",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/dashboard",
-      "text": "More"
-    },
-    {
-      "kind": "navigate",
-      "url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings"
-    },
-    {
-      "kind": "click",
-      "selector": "[data-testid=\"chrome-settings-menu-trigger\"]",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/dashboard",
+      "selector": "html > body > extensions-manager",
+      "frame_url": "chrome://extensions/",
       "text": ""
-    },
-    {
-      "kind": "click",
-      "selector": "[data-testid=\"account-switcher-trigger\"]",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings",
-      "text": "N\nNew business sandbox\nNew business"
-    },
-    {
-      "kind": "click",
-      "selector": "[data-testid=\"account-switcher-sign-out-button\"]",
-      "frame_url": "https://dashboard.stripe.com/acct_1UKdeQLcmaDvDhGc/test/settings",
-      "text": "Sign out"
-    },
-    {
-      "kind": "navigate",
-      "url": "https://dashboard.stripe.com/login"
-    },
-    {
-      "kind": "click",
-      "selector": "#toggle_passkey_mode",
-      "frame_url": "https://dashboard.stripe.com/login",
-      "text": "Passkey"
-    },
-    {
-      "kind": "navigate",
-      "url": "https://dashboard.stripe.com/login"
-    },
-    {
-      "kind": "fill",
-      "selector": "[data-testid=\"login-email-input\"]",
-      "frame_url": "https://dashboard.stripe.com/login",
-      "field": "email"
-    },
-    {
-      "kind": "click",
-      "selector": "[data-testid=\"enter-credentials-submit-button\"]",
-      "frame_url": "https://dashboard.stripe.com/login",
-      "text": "Continue with passkey"
     }
   ]
 }
