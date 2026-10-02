@@ -140,6 +140,19 @@ def classify_webauthn(rec: dict) -> str | None:
                     or present(resp, resp_raw, "rpId")
                     or present(resp, resp_raw, "userVerification")):
                 return "webauthn_auth_begin"
+
+    # URL fallback: some RPs obfuscate/minify the option field names (Canva renames
+    # challenge/rp/user to single letters), so shape-detection misses the begin.
+    # But the endpoint path still names the ceremony. Only trust this for clearly
+    # WebAuthn URLs, and only for a begin (the finish is already caught above by its
+    # attestationObject/signature body).
+    if any(k in url for k in ("webauthn", "passkey", "/fido")):
+        seg = url
+        if any(k in seg for k in ("start", "begin", "option", "challenge", "/new")):
+            if any(k in seg for k in ("regist", "attest", "create", "enroll")):
+                return "webauthn_register_begin"
+            if any(k in seg for k in ("auth", "assert", "login", "signin", "sign-in")):
+                return "webauthn_auth_begin"
     return None
 
 
@@ -317,6 +330,42 @@ def redact(rec: dict, identity: dict) -> dict:
 # descriptor assembly
 # ---------------------------------------------------------------------------
 
+def detect_style(records: list[dict]) -> dict:
+    """Decide whether an RP's WebAuthn flow is 'standard' (field names like
+    challenge/pubKeyCredParams/attestationObject, handled by replay_http) or
+    'ajax' (fields renamed/minified and gated behind JS-set session headers,
+    handled by ajax_adapter — e.g. Canva's single-letter A/B/C maps).
+
+    Decisive signal is the BEGIN: a begin whose response parses as JSON but
+    contains no `challenge` anywhere (key or substring) means the fields were
+    renamed — it was only classifiable via the URL fallback. A finish that
+    parses as JSON without a real attestationObject/signature key (the credential
+    is stringified under a renamed key) is a secondary signal. Also collects the
+    custom x-* request headers the flow carries, so the adapter knows what to
+    borrow from the live browser session.
+    """
+    ajax = False
+    headers: set[str] = set()
+    for rec in records:
+        tag = classify_webauthn(rec)
+        if not tag:
+            continue
+        for k in (rec.get("request_headers") or {}):
+            lk = k.lower()
+            if lk.startswith("x-") and lk != "x-requested-with":
+                headers.add(lk)
+        if tag.endswith("begin"):
+            resp = parse_body(rec.get("response_body"), rec.get("response_content_type"))
+            resp_raw = rec.get("response_body") or ""
+            if resp is not None and not has_key(resp, "challenge") and "challenge" not in resp_raw:
+                ajax = True
+        elif tag.endswith("finish"):
+            req = parse_body(rec.get("request_body"), rec.get("request_content_type"))
+            if req is not None and not (has_key(req, "attestationObject") or has_key(req, "signature")):
+                ajax = True
+    return {"style": "ajax" if ajax else "standard", "ajax_headers": sorted(headers)}
+
+
 def build_descriptor(records: list[dict], rp_id: str, identity: dict) -> dict:
     """Classify every record and emit the per-RP flow descriptor.
 
@@ -343,9 +392,12 @@ def build_descriptor(records: list[dict], rp_id: str, identity: dict) -> dict:
             entry["sets_session_cookie"] = login["sets_session_cookie"]
         flow.append(entry)
 
+    style = detect_style(records)
     return {
         "rp_id": rp_id,
         "captured_requests": len(records),
+        "style": style["style"],          # "standard" -> replay_http ; "ajax" -> ajax_adapter
+        "ajax_headers": style["ajax_headers"],
         "flow": flow,
         "summary": _summarize(flow),
     }

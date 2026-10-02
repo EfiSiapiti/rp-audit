@@ -1,0 +1,65 @@
+{
+  "rp_id": "canva.com",
+  "captured_requests": 203,
+  "flow": [
+    {
+      "tag": "webauthn_auth_finish",
+      "method": "POST",
+      "url": "https://www.canva.com/_ajax/login2",
+      "status": 200,
+      "request_content_type": "application/json;charset=UTF-8"
+    },
+    {
+      "tag": "webauthn_auth_finish",
+      "method": "POST",
+      "url": "https://www.canva.com/_ajax/login2",
+      "status": 200,
+      "request_content_type": "application/json;charset=UTF-8"
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://www.canva.com/_ajax/login2",
+      "status": 200,
+      "request_content_type": "application/json;charset=UTF-8",
+      "login_fields": {
+        "A": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "webauthn_register_begin",
+      "method": "GET",
+      "url": "https://www.canva.com/_ajax/profile/users/UAHKqtD3Ieo/webauthn/registration/start",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "webauthn_register_finish",
+      "method": "POST",
+      "url": "https://www.canva.com/_ajax/profile/users/UAHKqtD3Ieo/webauthn/registration",
+      "status": 200,
+      "request_content_type": "application/json;charset=UTF-8"
+    },
+    {
+      "tag": "webauthn_auth_finish",
+      "method": "POST",
+      "url": "https://www.canva.com/_ajax/login2",
+      "status": 200,
+      "request_content_type": "application/json;charset=UTF-8"
+    },
+    {
+      "tag": "webauthn_auth_finish",
+      "method": "POST",
+      "url": "https://www.canva.com/_ajax/login2",
+      "status": 200,
+      "request_content_type": "application/json;charset=UTF-8"
+    }
+  ],
+  "summary": {
+    "webauthn_auth_finish": 4,
+    "login": 1,
+    "webauthn_register_begin": 1,
+    "webauthn_register_finish": 1
+  }
+}

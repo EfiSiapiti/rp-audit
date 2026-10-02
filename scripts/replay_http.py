@@ -252,7 +252,7 @@ def register_passkey(client: httpx.Client, rp_id: str, begin_url: str,
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--rp", required=True)
-    ap.add_argument("--login-url", required=True, help="login page to scrape the form from")
+    ap.add_argument("--login-url", help="login page to scrape the form from (not needed for ajax RPs)")
     ap.add_argument("--register", action="store_true", help="also run the passkey registration ceremony")
     ap.add_argument("--begin-url", help="passkey registration begin page (default: github's)")
     ap.add_argument("--finish-url", help="passkey registration finish endpoint")
@@ -262,6 +262,17 @@ def main() -> None:
     if not desc_path.exists():
         raise SystemExit(f"no descriptor at {desc_path} — run scripts.record_http first")
     descriptor = json.loads(desc_path.read_text(encoding="utf-8"))
+
+    # Route ajax-style (obfuscated, session-token-gated) RPs to the ajax adapter.
+    if descriptor.get("style") == "ajax":
+        import asyncio
+        from scripts import ajax_adapter
+        print(f"  {args.rp} is an ajax-style RP — routing to ajax_adapter")
+        asyncio.run(ajax_adapter.run(args.rp, do_auth=args.register))
+        return
+
+    if not args.login_url:
+        raise SystemExit("--login-url is required for standard (non-ajax) RPs")
     origin = _origin(args.login_url)
 
     with httpx.Client(timeout=30, follow_redirects=True) as client:
