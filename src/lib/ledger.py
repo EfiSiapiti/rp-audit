@@ -214,4 +214,4 @@ if __name__ == "__main__":
                     (e.get("history") or [{}])[-1].get("note", ""),
                     e.get("attempts", 0)) == "retry"
     )
-    print(f"  {'second-pass candidates':25s} {second_pass}  (see: python -m src.report)")
+    print(f"  {'second-pass candidates':25s} {second_pass}")
