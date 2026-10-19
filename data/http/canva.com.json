@@ -1,6 +1,20 @@
 {
   "rp_id": "canva.com",
   "captured_requests": 203,
+  "style": "ajax",
+  "ajax_headers": [
+    "x-canva-accept-prefix",
+    "x-canva-active-user",
+    "x-canva-analytics",
+    "x-canva-app",
+    "x-canva-authz",
+    "x-canva-brand",
+    "x-canva-locale",
+    "x-canva-request",
+    "x-canva-traceparent",
+    "x-canva-tracestate",
+    "x-canva-user"
+  ],
   "flow": [
     {
       "tag": "webauthn_auth_finish",

@@ -109,6 +109,7 @@ class Credential:
     cred_id: bytes
     alg: int = COSE_ES256
     sign_count: int = 0
+    user_handle: bytes | None = None   # from create() options.user.id; echoed on get()
 
 
 @dataclass
@@ -130,13 +131,18 @@ class SoftAuthenticator:
 
     # --- registration -----------------------------------------------------
 
-    def make_credential(self, *, rp_id: str, challenge: bytes, origin: str) -> dict:
+    def make_credential(self, *, rp_id: str, challenge: bytes, origin: str,
+                        user_id: bytes | None = None) -> dict:
         """Fabricate a create() result. Returns the finish payload (base64url
         strings), matching hook.js's RegistrationResponseJSON.
+
+        `user_id` is the RP's options.user.id; we remember it so a later
+        discoverable get() can echo it back as userHandle (RPs with an empty
+        allowCredentials rely on userHandle to resolve the account).
         """
         priv = ec.generate_private_key(ec.SECP256R1())
         cred_id = os.urandom(32)
-        self._creds[rp_id] = Credential(rp_id, priv, cred_id)
+        self._creds[rp_id] = Credential(rp_id, priv, cred_id, user_handle=user_id)
 
         rp_id_hash = hashlib.sha256(rp_id.encode()).digest()
         flags = bytes([self._flags(attested=True)])
@@ -171,6 +177,33 @@ class SoftAuthenticator:
                 "publicKeyAlgorithm": COSE_ES256,
             },
             "clientExtensionResults": {},
+        }
+
+    # --- persistence (bridge into the browser hook) -----------------------
+
+    def export_record(self, rp_id: str) -> dict | None:
+        """Serialize a stored credential to hook.js's fab_keys.json record shape
+        (see pwned-xploit hook.js persistKey), so a key minted here over HTTP can
+        be loaded by the injected browser hook and used to authenticate in-page.
+        """
+        entry = self._creds.get(rp_id)
+        if entry is None:
+            return None
+        nums = entry.private_key.private_numbers()
+        pub = nums.public_numbers
+        jwk = {                                   # minimal EC P-256 private JWK
+            "kty": "EC", "crv": "P-256",
+            "x": b64url(pub.x.to_bytes(32, "big")),
+            "y": b64url(pub.y.to_bytes(32, "big")),
+            "d": b64url(nums.private_value.to_bytes(32, "big")),
+        }
+        return {
+            "rpId": rp_id,
+            "alg": entry.alg,
+            "privateKeyJwk": jwk,
+            "credIdBase64": b64url(entry.cred_id),
+            "credIdArray": list(entry.cred_id),
+            "signCount": entry.sign_count,
         }
 
     # --- authentication ---------------------------------------------------
@@ -217,7 +250,7 @@ class SoftAuthenticator:
                 "authenticatorData": b64url(authenticator_data),
                 "clientDataJSON": b64url(client_data),
                 "signature": b64url(signature),
-                "userHandle": None,
+                "userHandle": b64url(entry.user_handle) if entry.user_handle else None,
             },
             "clientExtensionResults": {},
         }

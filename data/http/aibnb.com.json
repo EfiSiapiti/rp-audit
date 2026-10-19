@@ -1,0 +1,29 @@
+{
+  "rp_id": "aibnb.com",
+  "captured_requests": 273,
+  "style": "standard",
+  "ajax_headers": [
+    "x-airbnb-api-key",
+    "x-airbnb-client-trace-id",
+    "x-airbnb-graphql-platform",
+    "x-airbnb-graphql-platform-client",
+    "x-airbnb-network-log-link",
+    "x-airbnb-supports-airlock-v2",
+    "x-client-request-id",
+    "x-client-version",
+    "x-csrf-token",
+    "x-csrf-without-token"
+  ],
+  "flow": [
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "POST",
+      "url": "https://www.airbnb.com/api/v3/EmailCodeVerifyCodeMutation/9c78de4cb980cdf78ee93dffd53611f9c799f1bb2ef53374ac445e9f1dc834e2?operationName=EmailCodeVerifyCodeMutation&locale=en&currency=EUR",
+      "status": 200,
+      "request_content_type": "application/json"
+    }
+  ],
+  "summary": {
+    "webauthn_auth_begin": 1
+  }
+}

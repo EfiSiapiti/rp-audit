@@ -1,0 +1,62 @@
+{
+  "rp_id": "bird.com",
+  "captured_requests": 244,
+  "style": "standard",
+  "ajax_headers": [
+    "x-deployment-id"
+  ],
+  "flow": [
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "POST",
+      "url": "https://bird.com/dashboard/login",
+      "status": 200,
+      "request_content_type": "text/plain;charset=UTF-8"
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://bird.com/dashboard/login",
+      "status": 200,
+      "request_content_type": "multipart/form-data; boundary=----WebKitFormBoundaryz6Bvxd9fX2xBKtOl",
+      "login_fields": {
+        "------WebKitFormBoundaryz6Bvxd9fX2xBKtOl\r\nContent-Disposition: form-data; name": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "POST",
+      "url": "https://bird.com/dashboard/login",
+      "status": 200,
+      "request_content_type": "text/plain;charset=UTF-8"
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "POST",
+      "url": "https://bird.com/dashboard/login",
+      "status": 200,
+      "request_content_type": "text/plain;charset=UTF-8"
+    },
+    {
+      "tag": "webauthn_register_begin",
+      "method": "POST",
+      "url": "https://bird.com/dashboard/profile/security/add/passkey",
+      "status": 200,
+      "request_content_type": "text/plain;charset=UTF-8"
+    },
+    {
+      "tag": "webauthn_register_finish",
+      "method": "POST",
+      "url": "https://bird.com/dashboard/profile/security/add/passkey",
+      "status": 200,
+      "request_content_type": "text/plain;charset=UTF-8"
+    }
+  ],
+  "summary": {
+    "webauthn_auth_begin": 3,
+    "login": 1,
+    "webauthn_register_begin": 1,
+    "webauthn_register_finish": 1
+  }
+}

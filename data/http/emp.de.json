@@ -1,0 +1,49 @@
+{
+  "rp_id": "emp.de",
+  "captured_requests": 101,
+  "style": "standard",
+  "ajax_headers": [],
+  "flow": [
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "POST",
+      "url": "https://www.emp-online.com/on/demandware.store/Sites-GLB-Site/en/Passkey-GenerateAuthenticationOptions",
+      "status": 200,
+      "request_content_type": "text/plain;charset=UTF-8"
+    },
+    {
+      "tag": "webauthn_register_begin",
+      "method": "POST",
+      "url": "https://www.emp-online.com/on/demandware.store/Sites-GLB-Site/en/Passkey-GenerateRegistrationOptions",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "webauthn_register_finish",
+      "method": "POST",
+      "url": "https://www.emp-online.com/on/demandware.store/Sites-GLB-Site/en/Passkey-VerifyRegistrationLoggedInCustomer",
+      "status": 200,
+      "request_content_type": "text/plain;charset=UTF-8"
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "POST",
+      "url": "https://www.emp-online.com/on/demandware.store/Sites-GLB-Site/en/Passkey-GenerateAuthenticationOptions",
+      "status": 200,
+      "request_content_type": "text/plain;charset=UTF-8"
+    },
+    {
+      "tag": "webauthn_auth_finish",
+      "method": "POST",
+      "url": "https://www.emp-online.com/on/demandware.store/Sites-GLB-Site/en/Passkey-VerifyAuthentication",
+      "status": 200,
+      "request_content_type": "text/plain;charset=UTF-8"
+    }
+  ],
+  "summary": {
+    "webauthn_auth_begin": 2,
+    "webauthn_register_begin": 1,
+    "webauthn_register_finish": 1,
+    "webauthn_auth_finish": 1
+  }
+}

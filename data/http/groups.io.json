@@ -1,0 +1,62 @@
+{
+  "rp_id": "groups.io",
+  "captured_requests": 22,
+  "style": "standard",
+  "ajax_headers": [],
+  "flow": [
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "POST",
+      "url": "https://groups.io/webauthn/login/discoverable/start",
+      "status": 200,
+      "request_content_type": "application/json"
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://groups.io/login",
+      "status": 302,
+      "request_content_type": "application/x-www-form-urlencoded",
+      "login_fields": {
+        "email": "{{email}}",
+        "password": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "webauthn_register_begin",
+      "method": "POST",
+      "url": "https://groups.io/webauthn/register/start",
+      "status": 200,
+      "request_content_type": "application/json"
+    },
+    {
+      "tag": "webauthn_register_finish",
+      "method": "POST",
+      "url": "https://groups.io/webauthn/register/finish?name=key",
+      "status": 200,
+      "request_content_type": "application/json"
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "POST",
+      "url": "https://groups.io/webauthn/login/discoverable/start",
+      "status": 200,
+      "request_content_type": "application/json"
+    },
+    {
+      "tag": "webauthn_auth_finish",
+      "method": "POST",
+      "url": "https://groups.io/webauthn/login/discoverable/finish",
+      "status": 200,
+      "request_content_type": "application/json"
+    }
+  ],
+  "summary": {
+    "webauthn_auth_begin": 2,
+    "login": 1,
+    "webauthn_register_begin": 1,
+    "webauthn_register_finish": 1,
+    "webauthn_auth_finish": 1
+  }
+}

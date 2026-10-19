@@ -1,0 +1,72 @@
+{
+  "rp_id": "appypie.com",
+  "captured_requests": 246,
+  "style": "standard",
+  "ajax_headers": [],
+  "flow": [
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "GET",
+      "url": "https://accounts.appypie.com/login?client_id=75ch0e5coft50u7pjepnec1if1&response_type=code&scope=aws.cognito.signin.user.admin%20email%20openid%20phone%20profile&redirect_uri=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fsession-commonlogin&frompage=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fcommon-session&website=https%3A%2F%2Fsnappy.appypie.com",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "GET",
+      "url": "https://accounts.appypie.com/login/passkey?client_id=75ch0e5coft50u7pjepnec1if1&redirect_uri=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fsession-commonlogin&response_type=code&scope=aws.cognito.signin.user.admin+email+openid+phone+profile&_data=routes%2Flogin_.passkey",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "GET",
+      "url": "https://accounts.appypie.com/login/passkey?client_id=75ch0e5coft50u7pjepnec1if1&redirect_uri=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fsession-commonlogin&response_type=code&scope=aws.cognito.signin.user.admin+email+openid+phone+profile&_data=root",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "GET",
+      "url": "https://accounts.appypie.com/login?client_id=75ch0e5coft50u7pjepnec1if1&response_type=code&scope=aws.cognito.signin.user.admin+email+openid+phone+profile&redirect_uri=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fsession-commonlogin&frompage=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fcommon-session&website=https%3A%2F%2Fsnappy.appypie.com&_data=root",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "GET",
+      "url": "https://accounts.appypie.com/verifyPassword?client_id=75ch0e5coft50u7pjepnec1if1&redirect_uri=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fsession-commonlogin&response_type=code&scope=aws.cognito.signin.user.admin+email+openid+phone+profile&_data=root",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://accounts.appypie.com/verifyPassword?client_id=75ch0e5coft50u7pjepnec1if1&redirect_uri=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fsession-commonlogin&response_type=code&scope=aws.cognito.signin.user.admin+email+openid+phone+profile&_data=routes%2FverifyPassword",
+      "status": 204,
+      "request_content_type": "application/x-www-form-urlencoded;charset=UTF-8",
+      "login_fields": {
+        "password": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "GET",
+      "url": "https://accounts.appypie.com/login?client_id=75ch0e5coft50u7pjepnec1if1&response_type=code&scope=aws.cognito.signin.user.admin%20email%20openid%20phone%20profile&redirect_uri=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fsession-commonlogin&frompage=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fcommon-session&website=https%3A%2F%2Fsnappy.appypie.com",
+      "status": 200,
+      "request_content_type": null
+    },
+    {
+      "tag": "webauthn_auth_begin",
+      "method": "GET",
+      "url": "https://accounts.appypie.com/verifyPassword?client_id=75ch0e5coft50u7pjepnec1if1&redirect_uri=https%3A%2F%2Fsnappy.appypie.com%2Findex%2Fsession-commonlogin&response_type=code&scope=aws.cognito.signin.user.admin+email+openid+phone+profile&_data=root",
+      "status": 200,
+      "request_content_type": null
+    }
+  ],
+  "summary": {
+    "webauthn_auth_begin": 7,
+    "login": 1
+  }
+}

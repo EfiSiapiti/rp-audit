@@ -1,0 +1,23 @@
+{
+  "rp_id": "archidekt.com",
+  "captured_requests": 172,
+  "style": "standard",
+  "ajax_headers": [],
+  "flow": [
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://archidekt.com/api/rest-auth/login/",
+      "status": 200,
+      "request_content_type": "application/json",
+      "login_fields": {
+        "password": "{{password}}",
+        "email": "{{email}}"
+      },
+      "sets_session_cookie": false
+    }
+  ],
+  "summary": {
+    "login": 1
+  }
+}

@@ -87,7 +87,7 @@ def _persistent_profile_dir(rp_id: str) -> Path:
     return d
 
 
-def _merge_chrome_prefs(prefs_path: Path) -> None:
+def _merge_chrome_prefs(prefs_path: Path, extension_dir: str | None = None) -> None:
     """Re-assert the password-manager / autofill / permission-prompt suppression
     keys every launch.
 
@@ -99,6 +99,14 @@ def _merge_chrome_prefs(prefs_path: Path) -> None:
     missing/corrupt file. Also default-blocks notification/geolocation prompts
     (a site's "Show notifications?" bubble would otherwise cover buttons and
     break a replay click).
+
+    When `extension_dir` is set, also flips the profile's Developer Mode
+    toggle (extensions.ui.developer_mode) on. Recent Chrome silently refuses
+    to actually load an unpacked extension passed via --load-extension unless
+    this is set for the profile — the --disable-features=
+    DisableLoadExtensionCommandLineSwitch flag only suppresses a *different*
+    nag bar and is not enough by itself. A fresh profile defaults this to
+    off, so without this the extension never loads and nothing is logged.
     """
     data: dict = {}
     if prefs_path.exists():
@@ -131,6 +139,16 @@ def _merge_chrome_prefs(prefs_path: Path) -> None:
         autofill = {}
     autofill.update({"enabled": False, "profile_enabled": False, "credit_card_enabled": False})
     data["autofill"] = autofill
+    if extension_dir is not None:
+        extensions = data.get("extensions")
+        if not isinstance(extensions, dict):
+            extensions = {}
+        ui = extensions.get("ui")
+        if not isinstance(ui, dict):
+            ui = {}
+        ui["developer_mode"] = True
+        extensions["ui"] = ui
+        data["extensions"] = extensions
     try:
         prefs_path.write_text(json.dumps(data), encoding="utf-8")
     except Exception:
@@ -238,7 +256,7 @@ class BrowserSession:
             self._extension_dir = extension_dir
             default_dir = profile_dir / "Default"
             default_dir.mkdir(parents=True, exist_ok=True)
-            _merge_chrome_prefs(default_dir / "Preferences")
+            _merge_chrome_prefs(default_dir / "Preferences", extension_dir=extension_dir)
 
         
 

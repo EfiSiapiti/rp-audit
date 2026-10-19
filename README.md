@@ -76,11 +76,18 @@ python -m scripts.replay_http --rp github.com --login-url https://github.com/log
 
 # login + passkey registration ceremony (software authenticator)
 python -m scripts.replay_http --rp github.com --login-url https://github.com/login --register
+
+# register, then log in with that fabricated passkey (fresh, password-less session)
+python -m scripts.replay_http --rp github.com --login-url https://github.com/login --register --authenticate
 ```
 
 `--register` GETs the begin page, extracts the creation options, fabricates an ES256
 `fmt:"none"` credential with `src/lib/soft_authenticator.py`, and POSTs the finish
-payload (multipart for GitHub, JSON for JSON-native RPs).
+payload (multipart for GitHub, JSON for JSON-native RPs). `--authenticate` then opens a
+fresh session, reads the login page's `data-webauthn-sign-request` challenge, signs an
+assertion with that same key (echoing `user.id` as `userHandle` for the discoverable
+flow), and POSTs it to the session endpoint — passwordless login with the fabricated
+passkey. GitHub accepts both legs.
 
 ## 3. Hybrid fallback (browser login → HTTP ceremony)
 

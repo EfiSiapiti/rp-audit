@@ -1,0 +1,59 @@
+{
+  "rp_id": "blenderartists.org",
+  "captured_requests": 89,
+  "style": "standard",
+  "ajax_headers": [],
+  "flow": [
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://blenderartists.org/u/confirm-session.json",
+      "status": 200,
+      "request_content_type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "csrf": {
+        "location": "header",
+        "name": "x-csrf-token",
+        "source": "unknown"
+      },
+      "login_fields": {
+        "password": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "login",
+      "method": "PUT",
+      "url": "https://blenderartists.org/u/password-reset/cd1d3b3ac66e8d12aa18bc973d445b28.json",
+      "status": 200,
+      "request_content_type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "csrf": {
+        "location": "header",
+        "name": "x-csrf-token",
+        "source": "unknown"
+      },
+      "login_fields": {
+        "password": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://blenderartists.org/u/confirm-session.json",
+      "status": 200,
+      "request_content_type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "csrf": {
+        "location": "header",
+        "name": "x-csrf-token",
+        "source": "unknown"
+      },
+      "login_fields": {
+        "password": "{{password}}"
+      },
+      "sets_session_cookie": false
+    }
+  ],
+  "summary": {
+    "login": 3
+  }
+}

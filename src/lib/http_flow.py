@@ -157,6 +157,223 @@ def classify_webauthn(rec: dict) -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# per-request replay helpers (generic WebAuthn begin/finish template handling)
+# ---------------------------------------------------------------------------
+#
+# Different RPs wire the SAME ceremony onto wildly different HTTP shapes: a
+# clean JSON API (archidekt), single-letter-renamed JSON gated behind a live
+# session header (canva's `_ajax` endpoints), or a Next.js Server Action where
+# begin AND finish POST to the IDENTICAL url and the response is wrapped in a
+# React-server-component text stream (bird.com). None of that is worth a
+# per-RP branch: the WebAuthn field names (or, when renamed, the VALUES — a
+# challenge/credential is unmistakable regardless of what key it sits under)
+# are enough to locate everything generically, request by request.
+
+def walk_paths(obj: Any, prefix: tuple = ()) -> Iterable[tuple[tuple, Any]]:
+    """Yield every (path, value) pair in a nested dict/list, path included."""
+    yield prefix, obj
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from walk_paths(v, prefix + (k,))
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            yield from walk_paths(v, prefix + (i,))
+
+
+def get_path(obj: Any, path) -> Any:
+    for k in path:
+        obj = obj[k]
+    return obj
+
+
+def set_path(obj: Any, path, value) -> None:
+    for k in path[:-1]:
+        obj = obj[k]
+    obj[path[-1]] = value
+
+
+def _enclosing_starts(text: str, anchor: str, count: int) -> list[int]:
+    """Opening-brace indices of up to `count` successively wider `{...}`
+    objects around `anchor`, innermost first (index 0 = tightest enclosing)."""
+    i = text.find(anchor)
+    if i < 0:
+        return []
+    starts: list[int] = []
+    search_from = i
+    for _ in range(count):
+        depth, start = 0, None
+        for j in range(search_from, -1, -1):
+            c = text[j]
+            if c == "}":
+                depth += 1
+            elif c == "{":
+                if depth == 0:
+                    start = j
+                    break
+                depth -= 1
+        if start is None:
+            break
+        starts.append(start)
+        search_from = start - 1
+    return starts
+
+
+def _parse_from(text: str, start: int) -> Any | None:
+    """Parse the well-formed `{...}` object that begins at `start`.
+
+    `{`/`}` themselves are never HTML-escaped, so the brace-matching above is
+    safe to do on the raw text, but a quote inside an HTML page (github embeds
+    the creation options as a JS string literal) often is (`&quot;`) — unescape
+    before handing the span to json.loads.
+    """
+    import html as _html
+    depth = 0
+    for k in range(start, len(text)):
+        if text[k] == "{":
+            depth += 1
+        elif text[k] == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    return json.loads(_html.unescape(text[start:k + 1]))
+                except Exception:
+                    return None
+    return None
+
+
+def enclosing_json(text: str, anchor: str) -> dict | None:
+    """Smallest well-formed `{...}` JSON object in `text` that contains `anchor`.
+
+    Works whether `text` is a plain JSON body, an HTML page with the options
+    embedded inline, or a React-server-component stream (`N:{...}` lines) —
+    the object boundaries are found by brace-matching around the anchor
+    substring, not by assuming the whole payload parses as one JSON value.
+    """
+    starts = _enclosing_starts(text, anchor, 1)
+    return _parse_from(text, starts[0]) if starts else None
+
+
+def locate_begin_options(raw_text: str, kind: str) -> dict | None:
+    """Find the WebAuthn creation/assertion options for a begin response,
+    by literal field name, widened one level up so echo fields the finish
+    leg may reference (e.g. a sibling `challengeId`) come along for
+    find_copy_fields. `kind` is "register" or "auth". `challenge`/`rp`/`user`/
+    `pubKeyCredParams` may end up nested inside the returned object — look
+    them up with has_key/find_value, not a top-level `in`/`[]`.
+
+    Returns None when the RP renames the fields (ajax/obfuscated style) —
+    callers fall back to value-based matching in that case.
+    """
+    anchors = ("pubKeyCredParams",) if kind == "register" else (
+        "allowCredentials", "userVerification", "rpId")
+    for a in anchors:
+        starts = _enclosing_starts(raw_text, a, 2)
+        for start in reversed(starts):   # widest first, so sibling echo fields are included
+            obj = _parse_from(raw_text, start)
+            if obj is not None and has_key(obj, "challenge"):
+                return obj
+    return None
+
+
+def find_credential_path(obj: Any, required_keys: tuple[str, ...]) -> tuple[list, dict, bool] | None:
+    """Find where a finish request body carries the WebAuthn credential.
+
+    Handles both shapes seen in the wild: a plain nested credential object
+    (`{"id":..., "response": {"attestationObject": ...}}`, possibly itself
+    inside a list — bird.com), and a credential JSON-stringified under an
+    opaque key (canva's ajax API). `required_keys` are the response-level
+    keys that must all be present — ("attestationObject",) for register,
+    ("authenticatorData", "signature") for auth.
+
+    Returns (path, parsed_credential, is_stringified) or None.
+    """
+    for path, val in walk_paths(obj):
+        if isinstance(val, dict):
+            resp = val.get("response")
+            if isinstance(resp, dict) and all(k in resp for k in required_keys):
+                return list(path), val, False
+        elif isinstance(val, str) and all(k in val for k in required_keys):
+            try:
+                parsed = json.loads(val)
+            except Exception:
+                continue
+            resp = parsed.get("response") if isinstance(parsed, dict) else None
+            if isinstance(resp, dict) and all(k in resp for k in required_keys):
+                return list(path), parsed, True
+    return None
+
+
+def value_path(obj: Any, predicate) -> list | None:
+    """Path to the first value in `obj` satisfying `predicate(value)`."""
+    for path, val in walk_paths(obj):
+        if path and predicate(val):
+            return list(path)
+    return None
+
+
+def clientdata_challenge_origin(cred: dict) -> tuple[str | None, str | None]:
+    """Decode a WebAuthn credential's clientDataJSON -> (challenge, origin)."""
+    from src.lib.soft_authenticator import b64url_decode
+    cdj = (cred.get("response") or {}).get("clientDataJSON")
+    if not cdj:
+        return None, None
+    try:
+        data = json.loads(b64url_decode(cdj))
+        return data.get("challenge"), data.get("origin")
+    except Exception:
+        return None, None
+
+
+def infer_obfuscated_begin_paths(begin_parsed: Any, challenge: str, origin: str | None) -> dict:
+    """Value-based fallback for RPs that rename every WebAuthn field (ajax
+    style, e.g. canva's single-letter keys): locate the challenge and the rp
+    id INSIDE the begin response by the value the old capture is known to
+    carry, as a path — not a key name, which these RPs often reuse at
+    several nesting levels for unrelated fields. Returns
+    {"challenge_path": [...], "rpid_path": [...] | None}.
+    """
+    out: dict = {}
+    cp = value_path(begin_parsed, lambda v: v == challenge)
+    if cp:
+        out["challenge_path"] = cp
+    host = (origin or "").split("://")[-1]
+    if host:
+        rp = value_path(begin_parsed, lambda v: isinstance(v, str) and (v == host or host.endswith(v)))
+        if rp:
+            out["rpid_path"] = rp
+    return out
+
+
+def find_copy_fields(begin_opts: dict, finish_obj: Any, cred_path: list) -> list[tuple[list, list]]:
+    """Fields in `finish_obj` (outside the credential subtree) whose captured
+    value also appears somewhere in the begin response — a session/challenge/
+    request id the finish echoes back. Returns [(finish_path, begin_path)];
+    at replay, re-resolve each via get_path(new_begin_opts, begin_path) so the
+    echoed id is fresh even though the finish body is otherwise a frozen
+    template.
+
+    Positional (not key-name) on the begin side: some RPs reuse the same
+    short/renamed key at several nesting levels for unrelated fields (ajax
+    RPs that minify to single letters), so looking a value back up by key
+    name alone can land on the wrong occurrence. A path, paired with the
+    assumption that the begin response's shape is stable across runs (same
+    API, same schema — only the values differ), is unambiguous.
+    """
+    begin_index: dict[str, list] = {}
+    for path, val in walk_paths(begin_opts):
+        if path and isinstance(val, str) and len(val) >= 8 and val not in begin_index:
+            begin_index[val] = list(path)
+    cp = tuple(cred_path)
+    copies: list[tuple[list, list]] = []
+    for path, val in walk_paths(finish_obj):
+        if not path or list(path[:len(cp)]) == list(cp):
+            continue
+        if isinstance(val, str) and len(val) >= 8 and val in begin_index:
+            copies.append((list(path), begin_index[val]))
+    return copies
+
+
+# ---------------------------------------------------------------------------
 # CSRF token location
 # ---------------------------------------------------------------------------
 
@@ -211,7 +428,11 @@ def _trace_to_cookie(cookie_header: str, token_value: str) -> str:
 # login classification
 # ---------------------------------------------------------------------------
 
-_PW_NAME = re.compile(r"pass(word|wd|phrase)?$|^pwd$", re.I)
+_PW_NAME = re.compile(r"(?<!new)pass(word|wd|phrase)?$|^pwd$", re.I)
+# ^ excludes "newPassword" / "new_password" (etc.) fields: those set a NEW
+#   password (account-settings / passkey-setup flows), not a login credential —
+#   without the exclusion they still end in "...password" and get misread as
+#   the login submission, inventing a login step where none was captured.
 _EMAIL_NAME = re.compile(r"^(login|email|e-mail|username|user|account|identifier)$", re.I)
 
 
@@ -332,9 +553,13 @@ def redact(rec: dict, identity: dict) -> dict:
 
 def detect_style(records: list[dict]) -> dict:
     """Decide whether an RP's WebAuthn flow is 'standard' (field names like
-    challenge/pubKeyCredParams/attestationObject, handled by replay_http) or
-    'ajax' (fields renamed/minified and gated behind JS-set session headers,
-    handled by ajax_adapter — e.g. Canva's single-letter A/B/C maps).
+    challenge/pubKeyCredParams/attestationObject) or 'ajax' (fields
+    renamed/minified and often gated behind a JS-set session header — e.g.
+    Canva's single-letter A/B/C maps). Informational only now: replay_http's
+    begin/finish locators try the literal-name path first and fall back to
+    value+position matching automatically, so both styles replay through the
+    same engine — this just explains in the descriptor which path a given RP
+    needed.
 
     Decisive signal is the BEGIN: a begin whose response parses as JSON but
     contains no `challenge` anywhere (key or substring) means the fields were
@@ -396,7 +621,7 @@ def build_descriptor(records: list[dict], rp_id: str, identity: dict) -> dict:
     return {
         "rp_id": rp_id,
         "captured_requests": len(records),
-        "style": style["style"],          # "standard" -> replay_http ; "ajax" -> ajax_adapter
+        "style": style["style"],          # informational — replay_http handles both the same way
         "ajax_headers": style["ajax_headers"],
         "flow": flow,
         "summary": _summarize(flow),

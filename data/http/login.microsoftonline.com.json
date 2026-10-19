@@ -1,0 +1,51 @@
+{
+  "rp_id": "login.microsoftonline.com",
+  "captured_requests": 460,
+  "style": "standard",
+  "ajax_headers": [],
+  "flow": [
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://login.live.com/checkpassword.srf",
+      "status": 200,
+      "request_content_type": "application/json; charset=utf-8",
+      "login_fields": {
+        "username": "{{email}}",
+        "password": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "login",
+      "method": "POST",
+      "url": "https://login.live.com/ppsecure/post.srf?username=efi.audit.rps%40gmail.com&client_id=4765445b-32c6-49b0-83e6-1d93765276ca&contextid=24410B17EDCEB7EF&opid=221A12F605055174&bk=1791531150&uaid=5078bddf61d8453798ce9922e771faa9&pid=15216",
+      "status": 200,
+      "request_content_type": "application/x-www-form-urlencoded",
+      "login_fields": {
+        "login": "{{email}}",
+        "loginfmt": "{{email}}",
+        "passwd": "{{password}}"
+      },
+      "sets_session_cookie": false
+    },
+    {
+      "tag": "webauthn_register_finish",
+      "method": "POST",
+      "url": "https://account.live.com/interrupt/passkey/enroll?uaid=5078bddf61d8453798ce9922e771faa9&ru=https%3a%2f%2flogin.live.com%2foauth20_authorize.srf%3fuaid%3d5078bddf61d8453798ce9922e771faa9%26client_id%3d4765445b-32c6-49b0-83e6-1d93765276ca%26opid%3d221A12F605055174%26mkt%3dEN-US%26opidt%3d1791531160&client_id=1E00004040979A&fluent=2&uiflavor=web&mkt=EN-US",
+      "status": 302,
+      "request_content_type": "application/x-www-form-urlencoded"
+    },
+    {
+      "tag": "webauthn_register_finish",
+      "method": "POST",
+      "url": "https://account.live.com/proofs/Manage/additional?uaid=5078bddf61d8453798ce9922e771faa9&isPassKeyCreation=true&mkt=en-US",
+      "status": 200,
+      "request_content_type": "application/x-www-form-urlencoded"
+    }
+  ],
+  "summary": {
+    "login": 2,
+    "webauthn_register_finish": 2
+  }
+}

@@ -30,8 +30,10 @@ import json
 from pathlib import Path
 
 from src.lib import browser, credentials, http_flow
+from scripts import hook_bridge
 
 OUT_DIR = Path("data/http")
+DEFAULT_HOOK = "../pwned-xploit/pwned-xploit/hook.js"
 
 # Only these resource types carry the flow we care about; static assets are noise.
 KEEP_TYPES = {"xhr", "fetch", "document", "other"}
@@ -104,7 +106,13 @@ async def main() -> None:
     ap.add_argument("--rp", required=True, help="RP id, e.g. github.com")
     ap.add_argument("--url", help="URL to open first (e.g. the login page)")
     ap.add_argument("--extension", help="hook extension dir to load (optional)")
+    ap.add_argument("--hook", nargs="?", const=DEFAULT_HOOK, default=None,
+                    help="inject the fabrication hook via a self-contained localStorage bridge "
+                         "(no Windows Hello, no extension) so create()/get() complete and their "
+                         f"finish requests get captured; bare --hook uses {DEFAULT_HOOK}")
     args = ap.parse_args()
+    if args.hook and not Path(args.hook).is_file():
+        raise SystemExit(f"hook.js not found: {args.hook}")
 
     try:
         identity = credentials.load_identity()
@@ -119,6 +127,13 @@ async def main() -> None:
     page = await browser.ensure_browser_for(
         args.rp, extension_dir=args.extension, persist=bool(args.extension))
     await _capture(page, records, identity, seen, counter)
+
+    if args.hook:
+        # Inject the fabrication hook (no Hello / no extension) BEFORE navigating,
+        # so create()/get() resolve in-page and their finish POSTs get recorded.
+        ctx = await browser.get_context()
+        await hook_bridge.inject_hook_standalone(ctx, args.hook)
+        print(f"  injected fabrication hook (localStorage bridge): {args.hook}")
 
     if args.url:
         await page.goto(args.url, wait_until="domcontentloaded")
