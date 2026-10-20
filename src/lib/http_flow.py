@@ -94,6 +94,87 @@ _CAPTCHA_HOSTS = (
     "datadome.co", "perimeterx.net", "px-cloud.net", "captcha-delivery.com",
 )
 
+
+# ---------------------------------------------------------------------------
+# raw-log noise filtering (telemetry / static / captcha / pings / emoji / images)
+# ---------------------------------------------------------------------------
+#
+# A hand-driven capture session picks up far more than the login + WebAuthn
+# ceremony: analytics beacons, bundled JS/CSS, bot-detection probes, keep-alive
+# pings, emoji-picker data, marketing illustrations. None of it is ever part
+# of the flow a descriptor cares about, so clean_http_raw.py strips it before
+# a human reviews the log by hand.
+
+_TELEMETRY_HOSTS = (
+    "sentry.io", "ingest.sentry", "google-analytics.com", "analytics.google.com",
+    "doubleclick.net", "googletagmanager.com", "segment.io", "segment.com",
+    "cdn.segment.com", "amplitude.com", "mixpanel.com", "datadoghq.com",
+    "bugsnag.com", "fullstory.com", "hotjar.com", "clarity.ms", "newrelic.com",
+    "nr-data.net",
+)
+_TELEMETRY_PATHS = (
+    "/cdn-cgi/rum", "/_ajax/ae/time", "/_ajax/ae/v2/createbatch", "/_ajax/ae/",
+)
+_PING_PATTERNS = ("/_online", "/ping", "/heartbeat", "/keepalive")
+_EMOJI_PATTERNS = ("/emoji/",)
+_STATIC_RESOURCE_TYPES = {"script", "stylesheet", "font", "media"}
+_STATIC_EXT_RE = re.compile(r"\.(js|css|woff2?|ttf|otf|eot|wasm|map)(\?|$)", re.I)
+_IMAGE_RESOURCE_TYPES = {"image"}
+_IMAGE_EXT_RE = re.compile(r"\.(png|jpe?g|gif|svg|ico|webp|avif|bmp)(\?|$)", re.I)
+_IMAGE_CONTENT_TYPES = ("image/",)
+
+
+def classify_noise(rec: dict) -> str | None:
+    """Return a noise category for a captured record, or None if it looks
+    like it could belong to the flow.
+
+    Categories: "telemetry", "captcha", "ping", "emoji", "static", "image".
+    Signals used, in order: host/path substrings (telemetry, captcha, ping,
+    emoji), then resource_type / URL extension / response content-type
+    (static, image) — capture already discards most real script/stylesheet/
+    image resource types, so a capture-time "xhr"/"fetch"/"other" record can
+    still be one of these if it fetches a `.js`/`.png`/etc. URL or an
+    `image/*` response.
+    """
+    url = (rec.get("url") or "").lower()
+    rtype = (rec.get("resource_type") or "").lower()
+    resp_ct = (rec.get("response_content_type") or "").lower()
+
+    if any(h in url for h in _TELEMETRY_HOSTS) or any(p in url for p in _TELEMETRY_PATHS):
+        return "telemetry"
+    if any(h in url for h in _CAPTCHA_HOSTS) or "cdn-cgi/challenge-platform" in url:
+        return "captcha"
+    if any(p in url for p in _PING_PATTERNS):
+        return "ping"
+    if any(p in url for p in _EMOJI_PATTERNS):
+        return "emoji"
+    if rtype in _STATIC_RESOURCE_TYPES or _STATIC_EXT_RE.search(url):
+        return "static"
+    if (rtype in _IMAGE_RESOURCE_TYPES or _IMAGE_EXT_RE.search(url)
+            or any(resp_ct.startswith(ct) for ct in _IMAGE_CONTENT_TYPES)):
+        return "image"
+    return None
+
+
+def clean_raw_log(records: list[dict]) -> tuple[list[dict], dict[str, int]]:
+    """Split a raw capture into (kept, dropped-counts-by-category).
+
+    Never touches anything already classified as part of the flow: a record
+    that `classify_webauthn`/`classify_login` would tag is kept even if it
+    also matches a noise pattern (shouldn't happen in practice, but the flow
+    always wins).
+    """
+    kept: list[dict] = []
+    dropped: dict[str, int] = {}
+    for rec in records:
+        reason = classify_noise(rec)
+        if reason:
+            dropped[reason] = dropped.get(reason, 0) + 1
+        else:
+            kept.append(rec)
+    return kept, dropped
+
+
 def classify_webauthn(rec: dict) -> str | None:
     """Return a webauthn tag for a captured request record, or None.
 

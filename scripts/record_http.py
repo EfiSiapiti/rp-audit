@@ -4,13 +4,12 @@ HTTP-based audit.
 You launch real Chrome (same anti-detection attach model as record_path.py),
 drive login and the passkey ceremony (enrol and/or authenticate) by hand ONCE,
 and this records every XHR/fetch/document request+response into
-data/http/<rp>.raw.json, then classifies them into data/http/<rp>.json:
-
-  login  |  webauthn_register_begin/finish  |  webauthn_auth_begin/finish
+data/http/<rp>.raw.json. That's all it does now — classification into a flow
+descriptor (data/http/<rp>.json) is a separate, manual step: build one from
+the raw log with http_flow.build_descriptor once you've reviewed/cleaned it.
 
 Secrets never touch disk: the identity password/email and all Cookie/Authorization
-/Set-Cookie header *values* are redacted at capture time (see http_flow.redact);
-login fields are templated to {{email}}/{{password}} in the descriptor.
+/Set-Cookie header *values* are redacted at capture time (see http_flow.redact).
 
 Drive the passkey with any authenticator that completes the ceremony — the
 platform authenticator (Windows Hello) works, or pass --extension <hook dir> to
@@ -40,7 +39,7 @@ KEEP_TYPES = {"xhr", "fetch", "document", "other"}
 MAX_BODY = 64 * 1024  # cap stored body text
 
 
-async def _capture(page, records: list[dict], identity: dict, seen: set[int], counter: dict):
+async def _capture(page, records: list[dict], identity: dict, seen: set[int]):
     context = page.context
 
     async def on_response(response):
@@ -83,18 +82,9 @@ async def _capture(page, records: list[dict], identity: dict, seen: set[int], co
                 "request_body": request.post_data,
                 "response_body": body,
             }
-            # Trace the CSRF token to its cookie BEFORE redaction blanks cookie
-            # values; stash the result so build_descriptor reuses it.
-            csrf = http_flow.locate_csrf(rec)
-            http_flow.redact(rec, identity)   # scrub secrets BEFORE buffering
-            if csrf:
-                rec["csrf_trace"] = csrf
+            http_flow.redact(rec, identity)   # scrub secrets BEFORE buffering — never optional
             records.append(rec)
-
-            tag = http_flow.classify_webauthn(rec)
-            if tag:
-                counter[tag] = counter.get(tag, 0) + 1
-                print(f"    · {tag}: {request.method} {request.url.split('?')[0]}")
+            print(f"    · {request.method} {request.url.split('?')[0]}")
         except Exception:
             pass
 
@@ -122,11 +112,10 @@ async def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     records: list[dict] = []
     seen: set[int] = set()
-    counter: dict[str, int] = {}
 
     page = await browser.ensure_browser_for(
         args.rp, extension_dir=args.extension, persist=bool(args.extension))
-    await _capture(page, records, identity, seen, counter)
+    await _capture(page, records, identity, seen)
 
     if args.hook:
         # Inject the fabrication hook (no Hello / no extension) BEFORE navigating,
@@ -139,7 +128,7 @@ async def main() -> None:
         await page.goto(args.url, wait_until="domcontentloaded")
 
     print(f"\n  Recording HTTP for {args.rp}. Drive login + the passkey ceremony by hand.")
-    print("  Tagged WebAuthn requests print as they happen. Press Enter here when done.\n")
+    print("  Requests print as they happen. Press Enter here when done.\n")
     await asyncio.get_event_loop().run_in_executor(None, input)
 
     # let any in-flight response handlers finish
@@ -148,13 +137,8 @@ async def main() -> None:
     raw_path = OUT_DIR / f"{args.rp}.raw.json"
     raw_path.write_text(json.dumps(records, indent=2), encoding="utf-8")
 
-    descriptor = http_flow.build_descriptor(records, args.rp, identity)
-    desc_path = OUT_DIR / f"{args.rp}.json"
-    desc_path.write_text(json.dumps(descriptor, indent=2), encoding="utf-8")
-
     print(f"\n  {len(records)} requests captured -> {raw_path}")
-    print(f"  flow descriptor -> {desc_path}")
-    print(f"  summary: {descriptor['summary'] or '(no login/webauthn requests classified)'}")
+    print("  no flow descriptor written — classify/clean this raw log by hand, then build one")
 
     await browser.shutdown()
 

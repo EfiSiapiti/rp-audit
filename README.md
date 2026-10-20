@@ -41,11 +41,12 @@ playwright install chromium        # only needed for capture + hybrid login
   the reference for the software authenticator; each fabrication *control* is a branch
   of that repo.
 
-## 1. Capture / detect
+## 1. Capture
 
 Drive login + the passkey ceremony by hand **once** in real Chrome (same
 anti-detection attach model as the hybrid path); every XHR/fetch/document
-request+response is recorded, redacted, and classified.
+request+response is recorded and redacted. That's all `record_http` does —
+it does not classify anything.
 
 ```powershell
 python -m scripts.record_http --rp github.com --url https://github.com/login
@@ -53,18 +54,34 @@ python -m scripts.record_http --rp github.com --url https://github.com/login
                                              # of a real authenticator (Windows Hello)
 ```
 
-Outputs:
-- `data/http/<rp>.raw.json` — the full redacted request/response log.
-- `data/http/<rp>.json` — the **flow descriptor**: each request tagged
-  `login` / `webauthn_register_begin` / `webauthn_register_finish` /
-  `webauthn_auth_begin` / `webauthn_auth_finish`, with CSRF token location and
-  login fields templated to `{{email}}` / `{{password}}`.
+Output: `data/http/<rp>.raw.json` — the full redacted request/response log.
 
 Secrets never touch disk: `http_flow.redact()` strips the identity password/email
 (raw and percent-encoded) and all Cookie/Authorization/Set-Cookie **values** at
 capture time.
 
-## 2. Pure-HTTP replay
+## 2. Clean + classify
+
+Review the raw log by hand and trim it down to the requests that actually make
+up the flow (drop telemetry/analytics/static-asset noise, CAPTCHA/bot-detection
+beacons, unrelated dashboard calls). Then build the flow descriptor from the
+cleaned log:
+
+```python
+import json
+from src.lib import http_flow, credentials
+
+records = json.load(open("data/http/<rp>.raw.json", encoding="utf-8"))
+descriptor = http_flow.build_descriptor(records, "<rp>", credentials.load_identity())
+json.dump(descriptor, open("data/http/<rp>.json", "w", encoding="utf-8"), indent=2)
+```
+
+`data/http/<rp>.json` is the **flow descriptor**: each request tagged
+`login` / `webauthn_register_begin` / `webauthn_register_finish` /
+`webauthn_auth_begin` / `webauthn_auth_finish`, with CSRF token location and
+login fields templated to `{{email}}` / `{{password}}`.
+
+## 3. Pure-HTTP replay
 
 Reproduce the flow from the descriptor with `httpx` — no browser. Login scrapes the
 live form (so per-request CSRF tokens, anti-bot timestamps, and honeypot fields come
@@ -89,7 +106,7 @@ assertion with that same key (echoing `user.id` as `userHandle` for the discover
 flow), and POSTs it to the session endpoint — passwordless login with the fabricated
 passkey. GitHub accepts both legs.
 
-## 3. Hybrid fallback (browser login → HTTP ceremony)
+## 4. Hybrid fallback (browser login → HTTP ceremony)
 
 Some RPs can't be logged into over raw HTTP — e.g. Dropbox client-side-encrypts the
 password (`encrypted_password`) and gates login behind Arkose. For those, log in with
