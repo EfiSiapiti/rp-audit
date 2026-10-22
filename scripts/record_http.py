@@ -11,15 +11,18 @@ the raw log with http_flow.build_descriptor once you've reviewed/cleaned it.
 Secrets never touch disk: the identity password/email and all Cookie/Authorization
 /Set-Cookie header *values* are redacted at capture time (see http_flow.redact).
 
-Drive the passkey with any authenticator that completes the ceremony — the
-platform authenticator (Windows Hello) works, or pass --extension <hook dir> to
-fabricate navigator.credentials.create() with the pwned-xploit hook. Either way
-the register/authenticate *finish* request fires and is captured.
+Drive the passkey with any authenticator that completes the ceremony (the
+platform authenticator / Windows Hello works) — the register/authenticate
+*finish* request fires and is captured either way.
+
+Pass --persist to launch the kept per-RP profile under
+browser-profiles-manual/<rp>/ instead of a fresh throwaway one — use this for
+an RP you (or a prior session) already logged into by hand, so you land on
+the real, already-authenticated site instead of its login page.
 
 Usage:
     python -m scripts.record_http --rp github.com --url https://github.com/login
-    python -m scripts.record_http --rp github.com --url https://github.com/login \
-        --extension ../pwned-xploit/pwned-xploit
+    python -m scripts.record_http --rp canva.com --persist --url https://www.canva.com/settings/login-and-security
 """
 from __future__ import annotations
 
@@ -29,10 +32,8 @@ import json
 from pathlib import Path
 
 from src.lib import browser, credentials, http_flow
-from scripts import hook_bridge
 
 OUT_DIR = Path("data/http")
-DEFAULT_HOOK = "../pwned-xploit/pwned-xploit/hook.js"
 
 # Only these resource types carry the flow we care about; static assets are noise.
 KEEP_TYPES = {"xhr", "fetch", "document", "other"}
@@ -95,14 +96,10 @@ async def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--rp", required=True, help="RP id, e.g. github.com")
     ap.add_argument("--url", help="URL to open first (e.g. the login page)")
-    ap.add_argument("--extension", help="hook extension dir to load (optional)")
-    ap.add_argument("--hook", nargs="?", const=DEFAULT_HOOK, default=None,
-                    help="inject the fabrication hook via a self-contained localStorage bridge "
-                         "(no Windows Hello, no extension) so create()/get() complete and their "
-                         f"finish requests get captured; bare --hook uses {DEFAULT_HOOK}")
+    ap.add_argument("--persist", action="store_true",
+                    help="use the kept profile under browser-profiles-manual/<rp>/ "
+                         "(an RP you already logged into by hand) instead of a fresh one")
     args = ap.parse_args()
-    if args.hook and not Path(args.hook).is_file():
-        raise SystemExit(f"hook.js not found: {args.hook}")
 
     try:
         identity = credentials.load_identity()
@@ -113,16 +110,8 @@ async def main() -> None:
     records: list[dict] = []
     seen: set[int] = set()
 
-    page = await browser.ensure_browser_for(
-        args.rp, extension_dir=args.extension, persist=bool(args.extension))
+    page = await browser.ensure_browser_for(args.rp, persist=args.persist)
     await _capture(page, records, identity, seen)
-
-    if args.hook:
-        # Inject the fabrication hook (no Hello / no extension) BEFORE navigating,
-        # so create()/get() resolve in-page and their finish POSTs get recorded.
-        ctx = await browser.get_context()
-        await hook_bridge.inject_hook_standalone(ctx, args.hook)
-        print(f"  injected fabrication hook (localStorage bridge): {args.hook}")
 
     if args.url:
         await page.goto(args.url, wait_until="domcontentloaded")
