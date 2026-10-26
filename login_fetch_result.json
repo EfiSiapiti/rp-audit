@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "label": "getuserauthenticationmethods",
+      "status": 200,
+      "body": "{\"A\":[{\"A?\":\"G\",\"A\":true},{\"A?\":\"B\"},{\"A?\":\"A\"}],\"B\":{\"A?\":\"A\"}}"
+    },
+    {
+      "label": "loginv2",
+      "status": 200,
+      "body": "{\"A?\":\"A\",\"F\":{\"id\":\"UAHKqtD3Ieo\",\"creationDate\":1779703597000,\"status\":\"A\",\"webauthnCredentials\":[],\"passwordDetails\":{\"A\":false},\"locked\":false,\"temporary\":false,\"displayName\":\"Efi Siapi\",\"email\":\"efi.audit.rps@gmail.com\",\"emailStatus\":\"VERIFIED\",\"mfaEnabled\":false,\"ssoManaged\":false,\"username\":\"efi_audit_rps\",\"countryCode\":\"CY\",\"locale\":\"en\",\"credentials\":{\"newPasswordAdvisable\":false,\"passwordUpdatedDate\":1792654304000},\"oauthAccounts\":[],\"oauthAccountTokens\":[],\"samlAccounts\":[],\"ltiAccounts\":[],\"externalAppAccounts\":[],\"externalLinks\":[],\"roles\":[\"USER\"],\"personalBrand\":\"BAHKqrUHJbA\",\"privacyPolicyNotified\":1779703597000,\"isDeveloper\":false,\"isStudentWithUsernameAndPassword\":false,\"openDesktopDeeplinks\":false,\"updatedAt\":1792654304000,\"sequenceNumber\":9},\"I\":\"BAHKqrUHJbA\",\"J\":\"OWNER\"}"
+    }
+  ],
+  "session": {
+    "status": 200,
+    "body": "{\"A?\":\"A\"}"
+  }
+}

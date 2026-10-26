@@ -8,6 +8,9 @@ data/ledger.json
 data/fab_keys.json
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .venv/
-audit.logd
+audit.log
 pw-profile/
+data/http/

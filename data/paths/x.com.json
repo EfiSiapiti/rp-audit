@@ -1,0 +1,53 @@
+{
+  "rp_id": "x.com",
+  "login_url": "https://x.com/login",
+  "success_url": "https://x.com/home",
+  "steps": [
+    {
+      "kind": "navigate",
+      "url": "https://x.com/login"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://x.com/i/jf/onboarding/web?mode=login"
+    },
+    {
+      "kind": "click",
+      "selector": "div[aria-label=\"Log\\ in\\ to\\ X\"]",
+      "frame_url": "https://x.com/i/jf/onboarding/web?mode=login",
+      "text": "See what's happening\n\nSelect an option b"
+    },
+    {
+      "kind": "fill",
+      "selector": "#jf-input-username_or_email",
+      "frame_url": "https://x.com/i/jf/onboarding/web?mode=login",
+      "field": "email"
+    },
+    {
+      "kind": "click",
+      "selector": "text=\"Continue\"",
+      "frame_url": "https://x.com/i/jf/onboarding/web?mode=login",
+      "text": "Continue"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://x.com/i/jf/onboarding/web?mode=login#/s/verify_code/r-md1u4j"
+    },
+    {
+      "kind": "click",
+      "selector": "div[aria-label=\"Log\\ in\\ to\\ X\"]",
+      "frame_url": "https://x.com/i/jf/onboarding/web?mode=login#/s/verify_code/r-md1u4j",
+      "text": "Use password\n\nCheck your email\n\nThe code"
+    },
+    {
+      "kind": "fill",
+      "selector": "input[autocomplete=\"one-time-code\"]",
+      "frame_url": "https://x.com/i/jf/onboarding/web?mode=login#/s/verify_code/r-md1u4j",
+      "field": "otp"
+    },
+    {
+      "kind": "navigate",
+      "url": "https://x.com/home"
+    }
+  ]
+}
