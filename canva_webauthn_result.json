@@ -1,0 +1,11 @@
+{
+  "begin": {
+    "status": 200,
+    "body": "{\"A\":\"b669b66c-5654-4d0d-8ca6-a5c449fe4931\",\"B\":{\"A\":\"UAHKqtD3Ieo\",\"B\":\"efi.audit.rps@gmail.com\",\"C\":\"Efi Siapi\"},\"C\":\"YUZ0jd15fOk4NY0cDW1zqLPq-LwJkFICNJzyAKBNYQA\",\"D\":{\"A\":\"www.canva.com\",\"B\":\"Canva\"},\"E\":[\"Fdrg-4CFRakpUGu-YK50B_idSb3D3XEWTfEHOToC_O8\",\"Qahjcnc9pUtronj0IROAwKGMxq0-zRbPTgv46kEEpiA\"]}"
+  },
+  "finish": {
+    "status": 403,
+    "body": "{\"statusCode\":403,\"error\":\"forbidden\",\"endUserMessage\":\"We couldn\u2019t proceed due to a failed security check. Error code a50904f8b9ffb83a.\"}"
+  },
+  "accepted": false
+}
