@@ -20,10 +20,7 @@ two reasons:
     back off, which is why it kept "resetting". Only ever open this profile
     with this same real Chrome.
 
-    python -m scripts.open_profile
-    python -m scripts.open_profile --url https://www.canva.com/settings/login-and-security
-    python -m scripts.open_profile --no-extension       # plain open, no hook
-"""
+    python -m scripts.open_profile"""
 import argparse, datetime, os, subprocess, sys
 from pathlib import Path
 
@@ -38,9 +35,23 @@ DEFAULT_EXTENSION = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "pwned-xploit", "pwned-xploit"))
 HOOK_MARKER = "() => !!window.__webauthnObserverInstalled"
 
-def run_hooked(profile, url, ext):
-    """Real-Chrome subprocess + CDP attach on the persistent profile, extension
-    loaded. Opens the page and stays open for hands-on driving. No login."""
+def resolve_extension(ext: str | None = None) -> str:
+    """The extension dir to load: the given one, else the default pwned-xploit
+    checkout. Raises if it doesn't exist."""
+    chosen = ext or DEFAULT_EXTENSION
+    if not os.path.isdir(chosen):
+        raise SystemExit(f"extension dir not found: {chosen}")
+    return chosen
+
+
+def spawn_hooked_chrome(profile: str, url: str, ext: str | None = None):
+    """Launch real Chrome with the fabrication extension loaded on the persistent
+    profile, wait for its CDP endpoint, and return (proc, port, cdp_url). The
+    caller drives it over the port and must terminate `proc` when done. This is
+    the same launch recipe run_hooked uses, factored out so other scripts (e.g.
+    the HTTP passkey flow) can spawn the profile themselves instead of requiring
+    open_profile to be started separately."""
+    ext = resolve_extension(ext)
     profile_dir = Path(profile).absolute()
     (profile_dir / "Default").mkdir(parents=True, exist_ok=True)
     # Suppress the password/autofill bubbles ONLY. Do NOT pass extension_dir:
@@ -58,8 +69,15 @@ def run_hooked(profile, url, ext):
                    f"--load-extension={Path(ext).absolute()}", url]
     print(f"loading extension: {ext}")
     proc = subprocess.Popen(chrome_args)
+    cdp = _wait_for_cdp(port)
+    return proc, port, cdp
+
+
+def run_hooked(profile, url, ext):
+    """Real-Chrome subprocess + CDP attach on the persistent profile, extension
+    loaded. Opens the page and stays open for hands-on driving. No login."""
+    proc, port, cdp = spawn_hooked_chrome(profile, url, ext)
     try:
-        cdp = _wait_for_cdp(port)
         with sync_playwright() as p:
             browser = p.chromium.connect_over_cdp(cdp)
             ctx = browser.contexts[0] if browser.contexts else browser.new_context()
@@ -127,16 +145,10 @@ def main():
     ap.add_argument("--no-extension", action="store_true", help="plain open, no hook")
     args = ap.parse_args()
 
-    ext = None
-    if not args.no_extension:
-        ext = args.extension or (DEFAULT_EXTENSION if os.path.isdir(DEFAULT_EXTENSION) else None)
-    if ext and not os.path.isdir(ext):
-        sys.exit(f"extension dir not found: {ext}")
-
-    if ext:
-        run_hooked(args.profile, args.url, ext)
-    else:
+    if args.no_extension:
         run_plain(args.profile, args.channel, args.url)
+    else:
+        run_hooked(args.profile, args.url, resolve_extension(args.extension))
 
 
 if __name__ == "__main__":

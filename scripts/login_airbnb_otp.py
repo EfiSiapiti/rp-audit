@@ -98,6 +98,11 @@ def _post(client: cffi_requests.Session, rec: dict, body_text: str, auth_session
 def _check_challenge(r: cffi_requests.Response) -> None:
     """Stop (don't escalate evasion) when airbnb answers with an Airlock/challenge."""
     body = (r.text or "")[:2000].lower()
+    # A wrong/expired OTP is a 403 too, but it's not a bot block — call it what it
+    # is so it isn't mistaken for an airlock (usually means the OTP picker chose a
+    # stale code; re-run and it should pick the newest).
+    if "incorrect_verification_code" in body or "incorrectverificationcode" in body:
+        raise SystemExit(f"OTP rejected as incorrect (HTTP {r.status_code}) — likely a stale code was submitted; re-run")
     if r.status_code in (403, 429) or any(m in body for m in _CHALLENGE_MARKERS):
         raise SystemExit(f"challenge/airlock detected (HTTP {r.status_code}): {body[:200]!r}\n"
                          "  Tier 1 insufficient or account is airlocked — resolve it in a real browser "
@@ -130,37 +135,44 @@ def _new_ids(with_attempt: bool = False) -> dict[str, str]:
     return ids
 
 
-def _collect_otp(email: str) -> str:
-    """Mail-poll for the login/signup OTP and return the code to submit.
+def _collect_otp(email: str, exclude: list[str] | None = None) -> str:
+    """Mail-poll for the login/airlock OTP and return the code to submit.
 
-    airbnb sends more than one OTP email per identify/email call, and
-    find_verification's own "newest wins" ordering did NOT reliably match which
-    one airbnb actually considers current (confirmed: the code it called newest
-    got rejected as already-expired, the other one didn't). So: enumerate every
-    candidate in the window first — never submit one blind — and use whichever
-    was found LAST in that enumeration, submitting only once."""
+    airbnb invalidates older codes when it issues a new one, so the valid code is
+    the one from the NEWEST email. find_verification's call order is not reliably
+    newest-first (it once returned a stale code first), so we can't pick by
+    position — instead we enumerate every candidate in the window and pick the one
+    with the latest received_at timestamp. That also excludes codes left over from
+    earlier runs, which is what made a stale code get submitted and rejected.
+
+    `exclude`: code values already consumed earlier in the same run (e.g. the
+    login OTP when a passkey-registration airlock then mails its own code)."""
     print(f"  collecting OTP codes mailed to {email} ...")
-    codes: list[str] = []
+    seen: list[str] = list(exclude or [])
+    found_codes: list[tuple[str, str]] = []   # (received_at, value)
     first_timeout = 120   # wait properly for the first one to land at all
     while True:
         found = imap_poll.find_verification(RP_ID_FOR_MAIL, timeout_seconds=first_timeout,
                                             prefer_code=True, newer_than_seconds=120,
                                             lookback_minutes=2,
-                                            exclude_values=codes)
+                                            exclude_values=seen)
         if not found or found.method != "code":
             break
-        print(f"    code {len(codes) + 1}: {found.value!r} (subject: {found.subject!r})")
-        codes.append(found.value)
+        print(f"    code {len(found_codes) + 1}: {found.value!r} at {found.received_at} (subject: {found.subject!r})")
+        found_codes.append((found.received_at, found.value))
+        seen.append(found.value)
         first_timeout = 15   # short: just long enough to catch a near-simultaneous second mail
-    if not codes:
+    if not found_codes:
         raise SystemExit("no OTP code found in mail within the timeout")
-    otp = codes[-1]
-    print(f"  using code {otp!r} ({len(codes)} found total, picked the last one)")
+    received_at, otp = max(found_codes, key=lambda c: c[0])   # newest email wins
+    print(f"  using code {otp!r} ({len(found_codes)} found, picked the newest by received_at {received_at})")
     return otp
 
 
-def main() -> None:
-    records = _raw_records()
+def login(client: cffi_requests.Session, records: list[dict]) -> str | None:
+    """Run the options -> identify -> authenticate OTP login on `client` and
+    return the authenticated userId (or None). Shared by the login script and
+    by passkey registration, which needs an authenticated session first."""
     options_rec = _find(records, "/auth/options")
     identify_rec = _find(records, "/auth/identify/email")
     authenticate_rec = _find(records, "/auth/authenticate/email_otp")
@@ -168,51 +180,52 @@ def main() -> None:
         raise SystemExit("could not find all three captured auth requests in the raw log")
 
     email = credentials.resolve("email", rp_id=RP_ID_FOR_MAIL)
+    _warm_cookies(client, options_rec)
+    session_ids = _new_ids()
+    attempt_ids = _new_ids(with_attempt=True)
 
+    print(f"  POST {options_rec['url'].split('?')[0]} (opens the session chain)")
+    r = _post(client, options_rec, options_rec.get("request_body") or "", auth_session=None, ids=session_ids)
+    print(f"    -> {r.status_code}")
+    _check_challenge(r)
+    session_token = _next_auth_session(r)
+    if not session_token:
+        raise SystemExit("auth/options did not hand back an x-airbnb-set-auth-session header — can't continue")
+
+    identify_body = (identify_rec.get("request_body") or "").replace("{{email}}", email)
+    print(f"  POST {identify_rec['url'].split('?')[0]} (submits email, triggers the OTP email)")
+    r = _post(client, identify_rec, identify_body, auth_session=session_token, ids=attempt_ids)
+    print(f"    -> {r.status_code}  {(r.text or '')[:200]!r}")
+    _check_challenge(r)
+    session_token = _next_auth_session(r) or session_token
+
+    old_body = json.loads(authenticate_rec.get("request_body") or "{}")
+    old_otp = (((old_body.get("steps") or [{}, {}])[1] or {}).get("emailOtpChallenge") or {}).get("otp")
+    otp = _collect_otp(email)
+    authenticate_body = (authenticate_rec.get("request_body") or "").replace("{{email}}", email)
+    if old_otp:
+        authenticate_body = authenticate_body.replace(old_otp, otp)
+    else:
+        print("  WARNING: could not find the captured OTP value to replace — body still carries the stale one")
+
+    print(f"  POST {authenticate_rec['url'].split('?')[0]} (submits email + fresh otp)")
+    r = _post(client, authenticate_rec, authenticate_body, auth_session=session_token, ids=attempt_ids)
+    print(f"    -> {r.status_code}  {(r.text or '')[:300]!r}")
+    _check_challenge(r)
+    try:
+        parsed = r.json()
+    except ValueError:
+        parsed = None
+    if isinstance(parsed, dict) and isinstance(parsed.get("authentication"), dict):
+        return parsed["authentication"].get("userId")
+    return None
+
+
+def main() -> None:
+    records = _raw_records()
     with cffi_requests.Session(impersonate=IMPERSONATE, timeout=30) as client:
-        _warm_cookies(client, options_rec)
-
-        session_ids = _new_ids()
-        attempt_ids = _new_ids(with_attempt=True)
-
-        print(f"  POST {options_rec['url'].split('?')[0]} (no email yet, establishes the session chain)")
-        r = _post(client, options_rec, options_rec.get("request_body") or "", auth_session=None, ids=session_ids)
-        print(f"    -> {r.status_code}")
-        _check_challenge(r)
-        session_token = _next_auth_session(r)
-        if not session_token:
-            raise SystemExit("auth/options did not hand back an x-airbnb-set-auth-session header — can't continue")
-
-        identify_body = (identify_rec.get("request_body") or "").replace("{{email}}", email)
-        print(f"  POST {identify_rec['url'].split('?')[0]} (submits email, should trigger the OTP email)")
-        r = _post(client, identify_rec, identify_body, auth_session=session_token, ids=attempt_ids)
-        print(f"    -> {r.status_code}  {(r.text or '')[:200]!r}")
-        _check_challenge(r)
-        session_token = _next_auth_session(r) or session_token
-
-        old_body = json.loads(authenticate_rec.get("request_body") or "{}")
-        old_otp = (((old_body.get("steps") or [{}, {}])[1] or {}).get("emailOtpChallenge") or {}).get("otp")
-
-        otp = _collect_otp(email)
-
-        authenticate_body = (authenticate_rec.get("request_body") or "").replace("{{email}}", email)
-        if old_otp:
-            authenticate_body = authenticate_body.replace(old_otp, otp)
-        else:
-            print("  WARNING: could not find the captured OTP value to replace — body still carries the stale one")
-
-        print(f"  POST {authenticate_rec['url'].split('?')[0]} (submits email + fresh otp)")
-        r = _post(client, authenticate_rec, authenticate_body, auth_session=session_token, ids=attempt_ids)
-        print(f"    -> {r.status_code}  {(r.text or '')[:300]!r}")
-
-        try:
-            parsed = r.json()
-        except ValueError:
-            parsed = None
-        ok = isinstance(parsed, dict) and isinstance(parsed.get("authentication"), dict) \
-            and bool(parsed["authentication"].get("userId"))
-        print(f"\n  {'LOGGED IN' if ok else 'NOT logged in'} "
-             f"{'(userId ' + str(parsed['authentication'].get('userId')) + ')' if ok else ''}")
+        user_id = login(client, records)
+    print(f"\n  {'LOGGED IN (userId ' + str(user_id) + ')' if user_id else 'NOT logged in'}")
 
 
 if __name__ == "__main__":
